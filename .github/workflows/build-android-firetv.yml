@@ -36,8 +36,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Python deps for nanopb
-        run: pip install protobuf grpcio-tools
+      - name: protoc and Python deps for nanopb
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq protobuf-compiler
+          protoc --version
+          pip install protobuf grpcio-tools
 
       - name: Android NDK and CMake
         run: |
