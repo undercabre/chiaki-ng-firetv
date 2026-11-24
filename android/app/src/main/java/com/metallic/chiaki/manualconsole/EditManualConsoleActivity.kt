@@ -9,6 +9,7 @@ import android.view.Window
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
+import com.metallic.chiaki.common.GamepadNavActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.metallic.chiaki.R
@@ -18,7 +19,7 @@ import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
 import com.metallic.chiaki.databinding.ActivityEditManualBinding
 
-class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
+class EditManualConsoleActivity: GamepadNavActivity(), RevealActivity
 {
 	companion object
 	{

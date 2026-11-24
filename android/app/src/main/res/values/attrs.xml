@@ -19,4 +19,8 @@
         <attr name="drawableIdle" />
         <attr name="drawablePressed" />
     </declare-styleable>
+
+    <declare-styleable name="PinPickerView">
+        <attr name="pinLength" format="integer" />
+    </declare-styleable>
 </resources>

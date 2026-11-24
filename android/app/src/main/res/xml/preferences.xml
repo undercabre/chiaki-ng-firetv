@@ -13,6 +13,18 @@
             app:fragment="com.metallic.chiaki.settings.SettingsRegisteredHostsFragment"
             app:icon="@drawable/ic_console_simple"/>
 
+        <ListPreference
+            app:key="@string/preferences_controller_mapping_key"
+            app:title="@string/preferences_controller_mapping_title"
+            app:summary="%s"
+            app:icon="@drawable/ic_gamepad" />
+
+        <Preference
+            app:key="controller_test"
+            app:title="@string/title_controller_test"
+            app:summary="@string/preferences_controller_test_summary"
+            app:icon="@drawable/ic_gamepad" />
+
         <SwitchPreference
             app:key="@string/preferences_swap_cross_moon_key"
             app:title="@string/preferences_swap_cross_moon_title"
@@ -66,7 +78,7 @@
             app:summary="%s"
             app:icon="@drawable/ic_fps"/>
 
-        <EditTextPreference
+        <ListPreference
             app:key="@string/preferences_bitrate_key"
             app:title="@string/preferences_bitrate_title"
             app:icon="@drawable/ic_bitrate"/>
@@ -86,6 +98,12 @@
             app:summary="@string/preferences_export_settings_summary"
             app:title="@string/preferences_export_settings_title"
             app:icon="@drawable/ic_export"/>
+
+        <Preference
+            app:key="import_settings_phone"
+            app:title="@string/preferences_import_settings_phone_title"
+            app:summary="@string/preferences_import_settings_phone_summary"
+            app:icon="@drawable/ic_import"/>
 
         <Preference
             app:key="@string/preferences_import_settings_key"

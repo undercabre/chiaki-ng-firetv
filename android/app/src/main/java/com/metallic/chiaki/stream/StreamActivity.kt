@@ -8,7 +8,7 @@ import android.app.AlertDialog
 import android.graphics.Matrix
 import android.os.*
 import android.view.*
-import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
@@ -22,11 +22,16 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.Gamepad
+import com.metallic.chiaki.common.PinPickerView
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.common.isTv
+import com.metallic.chiaki.common.withGamepadNav
 import com.metallic.chiaki.databinding.ActivityStreamBinding
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.ConnectVideoProfile
+import com.metallic.chiaki.lib.ControllerState
 import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
@@ -40,6 +45,7 @@ private sealed class DialogContents
 private object StreamQuitDialog: DialogContents()
 private object CreateErrorDialog: DialogContents()
 private object PinRequestDialog: DialogContents()
+private object StreamMenuDialog: DialogContents()
 
 class StreamActivity : AppCompatActivity()
 {
@@ -55,9 +61,14 @@ class StreamActivity : AppCompatActivity()
 
 	private val uiVisibilityHandler = Handler(Looper.getMainLooper())
 
+	/** No touchscreen (Fire TV): no on-screen controls, no touch overlay, menu via controller combo. */
+	private var tvMode = false
+
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
+		Gamepad.loadSettings(this)
+		tvMode = isTv
 
 		val connectInfo = IntentCompat.getParcelableExtra(intent, EXTRA_CONNECT_INFO, ConnectInfo::class.java)
 		if(connectInfo == null)
@@ -71,9 +82,22 @@ class StreamActivity : AppCompatActivity()
 		})[StreamViewModel::class.java]
 
 		viewModel.input.observe(this)
+		viewModel.input.menuRequestedCallback = { showStreamMenu() }
+
+		if(tvMode)
+		{
+			viewModel.setOnScreenControlsEnabled(false)
+			viewModel.setTouchpadOnlyEnabled(false)
+		}
 
 		binding = ActivityStreamBinding.inflate(layoutInflater)
 		setContentView(binding.root)
+		if(tvMode)
+		{
+			binding.overlay.isGone = true
+			if(savedInstanceState == null)
+				Toast.makeText(this, R.string.stream_menu_hint, Toast.LENGTH_LONG).show()
+		}
 
 		WindowCompat.setDecorFitsSystemWindows(window, false)
 		insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -122,8 +146,15 @@ class StreamActivity : AppCompatActivity()
 
 		if(Preferences(this).rumbleEnabled)
 		{
-			val vibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator
+			@Suppress("DEPRECATION")
+			val deviceVibrator = getSystemService(VIBRATOR_SERVICE) as Vibrator?
+			var lastVibrator: Vibrator? = null
 			viewModel.session.rumbleState.observe(this, Observer {
+				val vibrator = controllerVibrator() ?: deviceVibrator?.takeIf { v -> v.hasVibrator() }
+				if(lastVibrator !== vibrator)
+					lastVibrator?.cancel()
+				lastVibrator = vibrator
+				vibrator ?: return@Observer
 				val amplitude = min(255, (it.left.toInt() + it.right.toInt()) / 2)
 				vibrator.cancel()
 				if(amplitude == 0)
@@ -131,9 +162,69 @@ class StreamActivity : AppCompatActivity()
 				if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
 					vibrator.vibrate(VibrationEffect.createOneShot(1000, amplitude))
 				else
+					@Suppress("DEPRECATION")
 					vibrator.vibrate(1000)
 			})
 		}
+	}
+
+	/** Vibrator of the game controller in use (DualSense rumble), if Fire OS exposes one. */
+	private fun controllerVibrator(): Vibrator?
+	{
+		val device = InputDevice.getDevice(viewModel.input.lastGamepadDeviceId) ?: return null
+		val vibrator = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+			device.vibratorManager.defaultVibrator
+		else
+			@Suppress("DEPRECATION")
+			device.vibrator
+		return vibrator.takeIf { it.hasVibrator() }
+	}
+
+	private fun showStreamMenu()
+	{
+		if(dialogContents != null || isFinishing)
+			return
+		val modeIds = listOf(R.id.display_mode_normal_button, R.id.display_mode_zoom_button, R.id.display_mode_stretch_button)
+		val modeNames = listOf(R.string.stream_display_mode_fit, R.string.stream_display_mode_zoom, R.string.stream_display_mode_stretch)
+		val currentMode = modeIds.indexOf(binding.displayModeToggle.checkedButtonId).coerceAtLeast(0)
+		val nextMode = (currentMode + 1) % modeIds.size
+		val items = arrayOf(
+			getString(R.string.stream_menu_resume),
+			getString(R.string.stream_menu_send_ps),
+			getString(R.string.stream_menu_send_touchpad),
+			getString(R.string.stream_menu_display_mode, getString(modeNames[currentMode]), getString(modeNames[nextMode])),
+			getString(R.string.stream_menu_disconnect))
+		val menuDialog = MaterialAlertDialogBuilder(this)
+			.setTitle(R.string.stream_menu_title)
+			.setItems(items) { _, which ->
+				when(which)
+				{
+					1 -> viewModel.input.pulseButton(ControllerState.BUTTON_PS)
+					2 -> viewModel.input.pulseButton(ControllerState.BUTTON_TOUCHPAD)
+					3 -> binding.displayModeToggle.check(modeIds[nextMode])
+					4 -> finish()
+				}
+			}
+			.create()
+			.withGamepadNav()
+		menuDialog.setOnDismissListener {
+			if(dialogContents == StreamMenuDialog)
+				dialog = null
+			hideSystemUI()
+		}
+		dialog = menuDialog
+		dialogContents = StreamMenuDialog
+		menuDialog.show()
+	}
+
+	@Deprecated("Deprecated in Java")
+	override fun onBackPressed()
+	{
+		if(tvMode)
+			showStreamMenu()
+		else
+			@Suppress("DEPRECATION")
+			super.onBackPressed()
 	}
 
 	private var controlsJob: Job? = null
@@ -170,6 +261,8 @@ class StreamActivity : AppCompatActivity()
 	{
 		super.onDestroy()
 		controlsJob?.cancel()
+		if(::viewModel.isInitialized)
+			viewModel.input.menuRequestedCallback = null
 	}
 
 	private fun reconnect()
@@ -182,6 +275,8 @@ class StreamActivity : AppCompatActivity()
 
 	private fun showOverlay()
 	{
+		if(tvMode)
+			return
 		binding.overlay.isVisible = true
 		binding.overlay.animate()
 			.alpha(1.0f)
@@ -222,7 +317,7 @@ class StreamActivity : AppCompatActivity()
 	}
 
 	private var dialogContents: DialogContents? = null
-	private var dialog: AlertDialog? = null
+	private var dialog: android.app.Dialog? = null
 		set(value)
 		{
 			field = value
@@ -260,6 +355,7 @@ class StreamActivity : AppCompatActivity()
 								finish()
 							}
 							.create()
+							.withGamepadNav()
 						dialogContents = StreamQuitDialog
 						dialog.show()
 					}
@@ -281,6 +377,7 @@ class StreamActivity : AppCompatActivity()
 						}
 						.setNegativeButton(R.string.action_quit_session) { _, _ -> }
 						.create()
+						.withGamepadNav()
 					dialogContents = CreateErrorDialog
 					dialog.show()
 				}
@@ -293,7 +390,7 @@ class StreamActivity : AppCompatActivity()
 					dialog?.dismiss()
 
 					val view = layoutInflater.inflate(R.layout.dialog_login_pin, null)
-					val pinEditText = view.findViewById<EditText>(R.id.pinEditText)
+					val pinPicker = view.findViewById<PinPickerView>(R.id.pinPicker)
 
 					val dialog = MaterialAlertDialogBuilder(this)
 						.setMessage(
@@ -304,7 +401,7 @@ class StreamActivity : AppCompatActivity()
 						.setView(view)
 						.setPositiveButton(R.string.action_login_pin_connect) { _, _ ->
 							dialog = null
-							viewModel.session.setLoginPin(pinEditText.text.toString())
+							viewModel.session.setLoginPin(pinPicker.pin)
 						}
 						.setOnCancelListener {
 							dialog = null
@@ -315,8 +412,10 @@ class StreamActivity : AppCompatActivity()
 							finish()
 						}
 						.create()
+						.withGamepadNav()
 					dialogContents = PinRequestDialog
 					dialog.show()
+					pinPicker.requestFocus()
 				}
 			}
 			else ->{}

@@ -25,11 +25,15 @@ android {
     ndkVersion "28.2.13676358"
 
     defaultConfig {
-        applicationId "com.metallic.chiaki"
+        applicationId "com.metallic.chiaki.firetv"
         minSdk 24
         targetSdk 35
         versionCode 12
-        versionName chiakiVersion
+        versionName "${chiakiVersion}-firetv"
+        ndk {
+            // Fire TV sticks: mostly 32-bit userland (armeabi-v7a), newer models arm64
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
         externalNativeBuild {
             cmake {
                 arguments "-DCHIAKI_ENABLE_TESTS=OFF",
@@ -91,6 +95,16 @@ android {
         properties.load(propertiesFile.newDataInputStream())
     }
 
+    // CI (GitHub Actions): keystore passed through environment variables / secrets
+    def envKeystore = System.getenv("CHIAKI_KEYSTORE_FILE")
+    if(envKeystore != null && !envKeystore.isEmpty() && file(envKeystore).exists()) {
+        println("Enabling Signing from environment")
+        properties.setProperty("chiakiKeystore", envKeystore)
+        properties.setProperty("chiakiKeystorePW", System.getenv("CHIAKI_KEYSTORE_PASSWORD") ?: "")
+        properties.setProperty("chiakiKeyAlias", System.getenv("CHIAKI_KEY_ALIAS") ?: "")
+        properties.setProperty("chiakiKeyPW", System.getenv("CHIAKI_KEY_PASSWORD") ?: "")
+    }
+
     if(properties.containsKey("chiakiKeystore")) {
         println("Enabling Local Signing")
         buildTypes.release.signingConfig = signingConfigs.release
@@ -100,7 +114,11 @@ android {
         signingConfigs.release.keyAlias = properties.get("chiakiKeyAlias")
         signingConfigs.release.keyPassword = properties.get("chiakiKeyPW")
     } else {
-        println("Signing not enabled")
+        // Still produce an installable release APK (sideload on Fire TV). Note: a different
+        // debug key on every CI run means updates require uninstalling first. Set the
+        // CHIAKI_KEYSTORE_* secrets to avoid that (see android/FIRETV.md).
+        println("No release keystore: signing release with the debug key")
+        buildTypes.release.signingConfig = signingConfigs.debug
     }
 }
 
@@ -131,6 +149,9 @@ dependencies {
     ksp libs.moshi.kotlin.codegen
 
     implementation libs.oboe
+
+    // QR code for the phone link (Fire TV has no keyboard)
+    implementation libs.zxing.core
 
     testImplementation 'junit:junit:4.13.2'
 }

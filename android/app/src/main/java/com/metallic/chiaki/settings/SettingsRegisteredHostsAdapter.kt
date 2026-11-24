@@ -12,6 +12,9 @@ class SettingsRegisteredHostsAdapter: RecyclerView.Adapter<SettingsRegisteredHos
 {
 	class ViewHolder(val binding: ItemRegisteredHostBinding): RecyclerView.ViewHolder(binding.root)
 
+	/** Click (Cross on Fire TV) on a registered console, e.g. to delete it without swiping. */
+	var onHostClicked: ((RegisteredHost) -> Unit)? = null
+
 	var hosts: List<RegisteredHost> = listOf()
 		set(value)
 		{
@@ -29,5 +32,8 @@ class SettingsRegisteredHostsAdapter: RecyclerView.Adapter<SettingsRegisteredHos
 		val host = hosts[position]
 		holder.binding.nameTextView.text = "${host.serverNickname} (${if(host.target.isPS5) "PS5" else "PS4"})"
 		holder.binding.summaryTextView.text = host.serverMac.toString()
+		holder.binding.root.isFocusable = true
+		holder.binding.root.isClickable = true
+		holder.binding.root.setOnClickListener { onHostClicked?.invoke(host) }
 	}
 }

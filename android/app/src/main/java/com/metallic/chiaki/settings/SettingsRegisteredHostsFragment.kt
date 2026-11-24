@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.metallic.chiaki.common.withGamepadNav
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.ext.viewModelFactory
@@ -60,10 +61,21 @@ class SettingsRegisteredHostsFragment: AppCompatDialogFragment(), TitleFragment
 						adapter.notifyItemChanged(pos) // to reset the swipe
 					}
 					.create()
+					.withGamepadNav()
 					.show()
 			}
 		}
 		ItemTouchHelper(itemTouchSwipeCallback).attachToRecyclerView(binding.hostsRecyclerView)
+		// No swiping on Fire TV: Cross on a console asks to delete it
+		adapter.onHostClicked = { host ->
+			MaterialAlertDialogBuilder(context)
+				.setMessage(getString(R.string.alert_message_delete_registered_host, host.serverNickname, host.serverMac.toString()))
+				.setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteHost(host) }
+				.setNegativeButton(R.string.action_keep) { _, _ -> }
+				.create()
+				.withGamepadNav()
+				.show()
+		}
 		viewModel.registeredHosts.observe(this, Observer {
 			adapter.hosts = it
 			binding.emptyInfoGroup.visibility = if(it.isEmpty()) View.VISIBLE else View.GONE

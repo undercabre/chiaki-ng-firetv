@@ -134,18 +134,26 @@ fun exportAndShareAllSettings(activity: Activity, scope: CoroutineScope)
 		withContext(Dispatchers.IO) {
 			file.writeText(json, Charsets.UTF_8)
 		}
-		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority, file)
+		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority(activity), file)
 		Intent(Intent.ACTION_SEND).also {
 			it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 			it.type = "application/json"
 			it.putExtra(Intent.EXTRA_STREAM, uri)
 			it.clipData = ClipData.newRawUri("", uri)
-			activity.startActivity(Intent.createChooser(it, activity.getString(R.string.action_share_log)))
+			try { activity.startActivity(Intent.createChooser(it, activity.getString(R.string.action_share_log))) }
+			catch(e: android.content.ActivityNotFoundException) { android.widget.Toast.makeText(activity, R.string.no_app_for_action, android.widget.Toast.LENGTH_LONG).show() }
 		}
 	}
 }
 
-fun importSettingsFromUri(activity: Activity, uri: Uri, scope: CoroutineScope)
+fun importSettingsFromUri(activity: Activity, uri: Uri, scope: CoroutineScope) =
+	importSettingsFromStream(activity, scope) { activity.contentResolver.openInputStream(uri) ?: throw IOException() }
+
+/** Used by the phone link on Fire TV, where there is no file picker. */
+fun importSettingsFromBytes(activity: Activity, json: ByteArray, scope: CoroutineScope) =
+	importSettingsFromStream(activity, scope) { json.inputStream() }
+
+fun importSettingsFromStream(activity: Activity, scope: CoroutineScope, open: () -> java.io.InputStream)
 {
 	fun loadFail(msg: String)
 	{
@@ -153,12 +161,13 @@ fun importSettingsFromUri(activity: Activity, uri: Uri, scope: CoroutineScope)
 			.setMessage(activity.getString(R.string.alert_message_import_failed, msg))
 			.setPositiveButton(R.string.action_import_failed_ack) { _, _ -> }
 			.create()
+			.withGamepadNav()
 			.show()
 	}
 
 	try
 	{
-		val inputStream = activity.contentResolver.openInputStream(uri) ?: throw IOException()
+		val inputStream = open()
 		val buffer = inputStream.source().buffer()
 		val reader = JsonReader.of(buffer)
 		val adapter = moshi().serializedSettingsAdapter()
@@ -212,6 +221,7 @@ fun importSettingsFromUri(activity: Activity, uri: Uri, scope: CoroutineScope)
 				}
 			}
 			.create()
+			.withGamepadNav()
 			.show()
 	}
 	catch(e: IOException)

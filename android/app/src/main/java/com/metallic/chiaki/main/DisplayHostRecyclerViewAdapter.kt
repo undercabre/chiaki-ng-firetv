@@ -2,12 +2,10 @@
 
 package com.metallic.chiaki.main
 
-import android.util.Log
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AnimationUtils
-import android.widget.PopupMenu
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
@@ -30,9 +28,8 @@ class DisplayHostDiffCallback(val old: List<DisplayHost>, val new: List<DisplayH
 
 class DisplayHostRecyclerViewAdapter(
 	val clickCallback: (DisplayHost) -> Unit,
-	val wakeupCallback: (DisplayHost) -> Unit,
-	val editCallback: (DisplayHost) -> Unit,
-	val deleteCallback: (DisplayHost) -> Unit
+	/** host, canWakeup, canEditDelete */
+	val menuCallback: (DisplayHost, Boolean, Boolean) -> Unit
 ): RecyclerView.Adapter<DisplayHostRecyclerViewAdapter.ViewHolder>()
 {
 	var hosts: List<DisplayHost> = listOf()
@@ -90,34 +87,35 @@ class DisplayHostRecyclerViewAdapter(
 			)
 			it.root.setOnClickListener { clickCallback(host) }
 
+			// TV focus feedback: grow the focused card a little
+			it.root.setOnFocusChangeListener { view, hasFocus ->
+				val scale = if(hasFocus) 1.06f else 1.0f
+				view.animate().scaleX(scale).scaleY(scale).setDuration(120).start()
+			}
+
 			val canWakeup = host.registeredHost != null
 			val canEditDelete = host is ManualDisplayHost
 			if(canWakeup || canEditDelete)
 			{
 				it.menuButton.isVisible = true
-				it.menuButton.setOnClickListener { _ ->
-					val menu = PopupMenu(context, it.menuButton)
-					menu.menuInflater.inflate(R.menu.display_host, menu.menu)
-					menu.menu.findItem(R.id.action_wakeup).isVisible = canWakeup
-					menu.menu.findItem(R.id.action_edit).isVisible = canEditDelete
-					menu.menu.findItem(R.id.action_delete).isVisible = canEditDelete
-					menu.setOnMenuItemClickListener { menuItem ->
-						when(menuItem.itemId)
-						{
-							R.id.action_wakeup -> wakeupCallback(host)
-							R.id.action_edit -> editCallback(host)
-							R.id.action_delete -> deleteCallback(host)
-							else -> return@setOnMenuItemClickListener false
-						}
-						true
-					}
-					menu.show()
+				val showMenu = { menuCallback(host, canWakeup, canEditDelete) }
+				it.menuButton.setOnClickListener { showMenu() }
+				it.root.setOnLongClickListener { showMenu(); true }
+				// Triangle / Options on a DualSense and the ≡ key of the remote arrive as KEYCODE_MENU
+				it.root.setOnKeyListener { _, keyCode, event ->
+					if(keyCode != KeyEvent.KEYCODE_MENU)
+						return@setOnKeyListener false
+					if(event.action == KeyEvent.ACTION_UP)
+						showMenu()
+					true
 				}
 			}
 			else
 			{
 				it.menuButton.isGone = true
 				it.menuButton.setOnClickListener(null)
+				it.root.setOnLongClickListener(null)
+				it.root.setOnKeyListener(null)
 			}
 		}
 	}

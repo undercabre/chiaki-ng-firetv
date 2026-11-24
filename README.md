@@ -1,4 +1,8 @@
 
+> **Fire TV fork.** This fork adapts the Android app for Amazon Fire TV with a DualSense
+> (no touch, no keyboard). See [android/FIRETV.md](android/FIRETV.md) for what changes,
+> install and build instructions. Everything else is upstream chiaki-ng.
+
 ![chiaki-ng Logo](gui/res/chiaking-logo.svg)
 
 # [chiaki-ng](https://chiaki-ng.github.io/chiaki-ng/)

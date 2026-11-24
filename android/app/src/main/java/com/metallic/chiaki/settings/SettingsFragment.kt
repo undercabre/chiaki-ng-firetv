@@ -3,20 +3,28 @@
 package com.metallic.chiaki.settings
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.res.Resources
 import android.os.Bundle
-import android.text.InputType
+import android.widget.Toast
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.*
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.Gamepad
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.exportAndShareAllSettings
 import com.metallic.chiaki.common.ext.viewModelFactory
 import com.metallic.chiaki.common.getDatabase
+import com.metallic.chiaki.common.hasTouchscreen
 import com.metallic.chiaki.common.importSettingsFromUri
+import com.metallic.chiaki.common.isTv
+import com.metallic.chiaki.common.withGamepadNav
+import com.metallic.chiaki.controllertest.ControllerTestActivity
+import com.metallic.chiaki.phonelink.PhoneImportActivity
 
 class DataStore(val preferences: Preferences): PreferenceDataStore()
 {
@@ -48,6 +56,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.fpsKey -> preferences.fps.value
 		preferences.bitrateKey -> preferences.bitrate?.toString() ?: ""
 		preferences.codecKey -> preferences.codec.value
+		preferences.controllerMappingKey -> preferences.controllerMapping.value
 		else -> defValue
 	}
 
@@ -71,6 +80,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 				val codec = Preferences.Codec.values().firstOrNull { it.value == value } ?: return
 				preferences.codec = codec
 			}
+			preferences.controllerMappingKey -> preferences.controllerMapping = Gamepad.Mapping.fromValue(value)
 		}
 	}
 }
@@ -80,7 +90,12 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	companion object
 	{
 		private const val PICK_SETTINGS_JSON_REQUEST = 1
+
+		/** Bitrate choices in kbps. Empty = automatic. A list instead of a text field: no keyboard on Fire TV. */
+		private val BITRATES = listOf(5000, 8000, 10000, 15000, 20000, 25000, 30000, 40000, 50000)
 	}
+
+	private lateinit var preferences: Preferences
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
 	{
@@ -90,6 +105,7 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			.get(SettingsViewModel::class.java)
 
 		val preferences = viewModel.preferences
+		this.preferences = preferences
 		preferenceManager.preferenceDataStore = DataStore(preferences)
 		setPreferencesFromResource(R.xml.preferences, rootKey)
 
@@ -103,26 +119,53 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			it.entries = Preferences.fpsAll.map { fps -> getString(fps.title) }.toTypedArray()
 		}
 
-		val bitratePreference = preferenceScreen.findPreference<EditTextPreference>(getString(R.string.preferences_bitrate_key))
-		val bitrateSummaryProvider = Preference.SummaryProvider<EditTextPreference> {
-			preferences.bitrate?.toString() ?: getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)
+		val bitratePreference = preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_bitrate_key))
+		fun updateBitrateEntries()
+		{
+			bitratePreference ?: return
+			bitratePreference.entryValues = (listOf("") + BITRATES.map { it.toString() }).toTypedArray()
+			bitratePreference.entries = (listOf(getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)) +
+					BITRATES.map { getString(R.string.preferences_bitrate_value, it / 1000) }).toTypedArray()
+			bitratePreference.summary = preferences.bitrate?.let { getString(R.string.preferences_bitrate_value, it / 1000) }
+				?: getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)
 		}
-		bitratePreference?.let {
-			it.summaryProvider = bitrateSummaryProvider
-			it.setOnBindEditTextListener { editText ->
-				editText.hint = getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)
-				editText.inputType = InputType.TYPE_CLASS_NUMBER
-				editText.setText(preferences.bitrate?.toString() ?: "")
-			}
+		updateBitrateEntries()
+		bitratePreference?.setOnPreferenceChangeListener { _, _ ->
+			listView?.post { updateBitrateEntries() }
+			true
 		}
-		viewModel.bitrateAuto.observe(this, Observer {
-			bitratePreference?.summaryProvider = bitrateSummaryProvider
-		})
+		viewModel.bitrateAuto.observe(this, Observer { updateBitrateEntries() })
 
 		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_codec_key))?.let {
 			it.entryValues = Preferences.codecAll.map { codec -> codec.value }.toTypedArray()
 			it.entries = Preferences.codecAll.map { codec -> getString(codec.title) }.toTypedArray()
 		}
+
+		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_controller_mapping_key))?.let {
+			it.entryValues = Gamepad.Mapping.values().map { m -> m.value }.toTypedArray()
+			it.entries = arrayOf(
+				getString(R.string.preferences_controller_mapping_auto),
+				getString(R.string.preferences_controller_mapping_standard),
+				getString(R.string.preferences_controller_mapping_sony_raw))
+			it.setOnPreferenceChangeListener { _, _ ->
+				listView?.post { Gamepad.loadSettings(context) }
+				true
+			}
+		}
+
+		preferenceScreen.findPreference<Preference>("controller_test")?.setOnPreferenceClickListener {
+			startActivity(Intent(context, ControllerTestActivity::class.java))
+			true
+		}
+
+		// Options that only make sense on a phone or tablet
+		if(!context.hasTouchscreen)
+		{
+			preferenceScreen.findPreference<Preference>(getString(R.string.preferences_button_haptic_enabled_key))?.isVisible = false
+			preferenceScreen.findPreference<Preference>(getString(R.string.preferences_motion_enabled_key))?.isVisible = false
+		}
+		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_rumble_enabled_key))?.setSummary(
+			if(context.isTv) R.string.preferences_rumble_enabled_summary_tv else R.string.preferences_rumble_enabled_summary)
 
 		val registeredHostsPreference = preferenceScreen.findPreference<Preference>("registered_hosts")
 		viewModel.registeredHostsCount.observe(this, Observer {
@@ -130,7 +173,40 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		})
 
 		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_export_settings_key))?.setOnPreferenceClickListener { exportSettings(); true }
-		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_import_settings_key))?.setOnPreferenceClickListener { importSettings(); true }
+		preferenceScreen.findPreference<Preference>(getString(R.string.preferences_import_settings_key))?.let {
+			it.isVisible = !context.isTv // no file picker on Fire TV, use the phone instead
+			it.setOnPreferenceClickListener { importSettings(); true }
+		}
+		preferenceScreen.findPreference<Preference>("import_settings_phone")?.setOnPreferenceClickListener {
+			startActivity(Intent(context, PhoneImportActivity::class.java))
+			true
+		}
+	}
+
+	/** List preferences as plain dialogs that understand the DualSense (Cross/Circle). */
+	@Suppress("DEPRECATION")
+	override fun onDisplayPreferenceDialog(preference: Preference)
+	{
+		if(preference !is ListPreference)
+		{
+			super.onDisplayPreferenceDialog(preference)
+			return
+		}
+		val context = context ?: return
+		val values = preference.entryValues ?: return
+		val checked = values.indexOfFirst { it.toString() == preference.value }
+		MaterialAlertDialogBuilder(context)
+			.setTitle(preference.title)
+			.setSingleChoiceItems(preference.entries, checked) { dialog, which ->
+				val value = values[which].toString()
+				if(preference.callChangeListener(value))
+					preference.value = value
+				dialog.dismiss()
+			}
+			.setNegativeButton(android.R.string.cancel) { _, _ -> }
+			.create()
+			.withGamepadNav()
+			.show()
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.title_settings)
@@ -138,7 +214,14 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	private fun exportSettings()
 	{
 		val activity = activity ?: return
-		exportAndShareAllSettings(activity, lifecycleScope)
+		try
+		{
+			exportAndShareAllSettings(activity, lifecycleScope)
+		}
+		catch(e: ActivityNotFoundException)
+		{
+			Toast.makeText(activity, R.string.no_app_for_action, Toast.LENGTH_LONG).show()
+		}
 	}
 
 	private fun importSettings()
@@ -147,9 +230,18 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			addCategory(Intent.CATEGORY_OPENABLE)
 			type = "application/json"
 		}
-		startActivityForResult(intent, PICK_SETTINGS_JSON_REQUEST)
+		try
+		{
+			@Suppress("DEPRECATION")
+			startActivityForResult(intent, PICK_SETTINGS_JSON_REQUEST)
+		}
+		catch(e: ActivityNotFoundException)
+		{
+			startActivity(Intent(context, PhoneImportActivity::class.java))
+		}
 	}
 
+	@Deprecated("Deprecated in Java")
 	override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
 	{
 		if(requestCode == PICK_SETTINGS_JSON_REQUEST && resultCode == Activity.RESULT_OK)

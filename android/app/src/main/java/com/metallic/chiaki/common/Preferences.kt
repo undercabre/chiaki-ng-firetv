@@ -59,6 +59,14 @@ class Preferences(context: Context)
 
 	private val resources = context.resources
 
+	/** Fire TV / no touchscreen: touch controls off, phone sensors off, 1080p by default. */
+	private val tv = context.isTv
+
+	val controllerMappingKey get() = resources.getString(R.string.preferences_controller_mapping_key)
+	var controllerMapping
+		get() = Gamepad.Mapping.fromValue(sharedPreferences.getString(controllerMappingKey, Gamepad.Mapping.AUTO.value))
+		set(value) { sharedPreferences.edit().putString(controllerMappingKey, value.value).apply() }
+
 	val discoveryEnabledKey get() = resources.getString(R.string.preferences_discovery_enabled_key)
 	var discoveryEnabled
 		get() = sharedPreferences.getBoolean(discoveryEnabledKey, true)
@@ -66,7 +74,7 @@ class Preferences(context: Context)
 
 	val onScreenControlsEnabledKey get() = resources.getString(R.string.preferences_on_screen_controls_enabled_key)
 	var onScreenControlsEnabled
-		get() = sharedPreferences.getBoolean(onScreenControlsEnabledKey, true)
+		get() = sharedPreferences.getBoolean(onScreenControlsEnabledKey, !tv)
 		set(value) { sharedPreferences.edit().putBoolean(onScreenControlsEnabledKey, value).apply() }
 
 	val touchpadOnlyEnabledKey get() = resources.getString(R.string.preferences_touchpad_only_enabled_key)
@@ -81,12 +89,12 @@ class Preferences(context: Context)
 
 	val motionEnabledKey get() = resources.getString(R.string.preferences_motion_enabled_key)
 	var motionEnabled
-		get() = sharedPreferences.getBoolean(motionEnabledKey, true)
+		get() = sharedPreferences.getBoolean(motionEnabledKey, !tv)
 		set(value) { sharedPreferences.edit().putBoolean(motionEnabledKey, value).apply() }
 
 	val buttonHapticEnabledKey get() = resources.getString(R.string.preferences_button_haptic_enabled_key)
 	var buttonHapticEnabled
-		get() = sharedPreferences.getBoolean(buttonHapticEnabledKey, true)
+		get() = sharedPreferences.getBoolean(buttonHapticEnabledKey, !tv)
 		set(value) { sharedPreferences.edit().putBoolean(buttonHapticEnabledKey, value).apply() }
 
 	val logVerboseKey get() = resources.getString(R.string.preferences_log_verbose_key)
@@ -101,9 +109,9 @@ class Preferences(context: Context)
 
 	val resolutionKey get() = resources.getString(R.string.preferences_resolution_key)
 	var resolution
-		get() = sharedPreferences.getString(resolutionKey, resolutionDefault.value)?.let { value ->
+		get() = sharedPreferences.getString(resolutionKey, (if(tv) Resolution.RES_1080P else resolutionDefault).value)?.let { value ->
 			Resolution.values().firstOrNull { it.value == value }
-		} ?: resolutionDefault
+		} ?: (if(tv) Resolution.RES_1080P else resolutionDefault)
 		set(value) { sharedPreferences.edit().putString(resolutionKey, value.value).apply() }
 
 	val fpsKey get() = resources.getString(R.string.preferences_fps_key)

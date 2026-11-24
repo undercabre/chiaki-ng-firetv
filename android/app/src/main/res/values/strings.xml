@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Chiaki</string>
-    <string name="title_main">Chiaki 千秋</string>
+    <string name="app_name">Chiaki FireTV</string>
+    <string name="title_main">Chiaki 千秋 · Fire TV</string>
     <string name="title_settings">Settings</string>
     <string name="alert_message_standby_wakeup">The Console is currently in standby mode. Do you want to send a Wakeup packet instead of trying to connect immediately?</string>
     <string name="alert_message_session_quit">Session has quit: %s</string>
@@ -106,19 +106,64 @@
     <string name="stream_on_screen_controls">On-Screen Controls</string>
     <string name="stream_touchpad_only">Touchpad only</string>
 
+
+    <!-- Fire TV fork -->
+    <string name="action_register_short">Register</string>
+    <string name="action_add_manual_short">Add</string>
+    <string name="action_discover_on">Discovery: on</string>
+    <string name="action_discover_off">Discovery: off</string>
+    <string name="action_done">Done</string>
+    <string name="main_controller_hint">✕ Connect · △ Options (wake up, edit, delete) · In game: L1 + R1 + Create + Options = menu</string>
+    <string name="stream_menu_hint">Menu: press L1 + R1 + Create + Options together (or Back on the remote)</string>
+    <string name="stream_menu_title">Remote Play</string>
+    <string name="stream_menu_resume">Resume</string>
+    <string name="stream_menu_send_ps">Press PS button</string>
+    <string name="stream_menu_send_touchpad">Press touchpad</string>
+    <string name="stream_menu_display_mode">Picture: %1$s → %2$s</string>
+    <string name="stream_display_mode_fit">Fit</string>
+    <string name="stream_display_mode_zoom">Zoom</string>
+    <string name="stream_display_mode_stretch">Stretch</string>
+    <string name="stream_menu_disconnect">Disconnect</string>
+    <string name="pin_picker_help">D-pad ↑ ↓ changes the digit, ← → moves. The remote\'s number keys also work.</string>
+    <string name="regist_psn_account_id_help_tv">Tip: scan the QR code with your phone to type the Account ID there. It is remembered for the next console.</string>
+    <string name="phone_link_title">Type with your phone</string>
+    <string name="phone_link_help">Scan the QR code with a phone on the same Wi-Fi and fill in the form there.</string>
+    <string name="phone_link_unavailable">Phone link unavailable: the Fire TV has no local network address.</string>
+    <string name="phone_link_received">Data received from the phone. Check it and press Register.</string>
+    <string name="phone_import_title">Import settings from your phone</string>
+    <string name="phone_import_help">On the phone, export the settings from Chiaki (Android), then scan this code and send the JSON file in section 2. The file contains your Remote Play keys: only do this on your own network.</string>
+    <string name="title_controller_test">Controller test</string>
+    <string name="controller_test_waiting">Press any button on the controller…</string>
+    <string name="controller_test_device">%1$s (vendor %2$s, product %3$s)\nMapping in use: %4$s (setting: %5$s)</string>
+    <string name="controller_test_mapping_raw">DualSense raw HID fix</string>
+    <string name="controller_test_mapping_standard">Android standard</string>
+    <string name="controller_test_last_raw">Last key: %1$s (scan %2$d) → %3$s</string>
+    <string name="controller_test_help">Press Cross: it must show \"Cross ✕\". If not, change Settings → Controller mapping. Hold Circle for 2 s (or Back on the remote) to leave.</string>
+    <string name="preferences_controller_mapping_title">Controller mapping</string>
+    <string name="preferences_controller_mapping_auto">Automatic (recommended)</string>
+    <string name="preferences_controller_mapping_standard">Android standard</string>
+    <string name="preferences_controller_mapping_sony_raw">DualSense/DS4 without driver (Fire OS fix)</string>
+    <string name="preferences_controller_test_summary">Check that every button of the DualSense is recognized</string>
+    <string name="preferences_bitrate_value">%d Mbps</string>
+    <string name="preferences_rumble_enabled_summary_tv">Rumble on the controller when Fire OS supports it</string>
+    <string name="preferences_import_settings_phone_title">Import settings from phone</string>
+    <string name="preferences_import_settings_phone_summary">Send the JSON exported by Chiaki on Android from your phone</string>
+    <string name="no_app_for_action">No app on this device can do that.</string>
+
     <!-- Don't localize these -->
-    <string name="preferences_discovery_enabled_key">discovery_enabled</string>
-    <string name="preferences_on_screen_controls_enabled_key">on_screen_controls_enabled</string>
-    <string name="preferences_touchpad_only_enabled_key">touchpad_only_enabled</string>
-    <string name="preferences_rumble_enabled_key">rumble_enabled</string>
-    <string name="preferences_motion_enabled_key">motion_enabled</string>
-    <string name="preferences_button_haptic_enabled_key">button_haptic_enabled</string>
-    <string name="preferences_log_verbose_key">log_verbose</string>
-    <string name="preferences_import_settings_key">import_settings</string>
-    <string name="preferences_export_settings_key">export_settings</string>
-    <string name="preferences_swap_cross_moon_key">swap_cross_moon</string>
-    <string name="preferences_resolution_key">stream_resolution</string>
-    <string name="preferences_fps_key">stream_fps</string>
-    <string name="preferences_bitrate_key">stream_bitrate</string>
-    <string name="preferences_codec_key">stream_codec</string>
+    <string name="preferences_discovery_enabled_key" translatable="false">discovery_enabled</string>
+    <string name="preferences_on_screen_controls_enabled_key" translatable="false">on_screen_controls_enabled</string>
+    <string name="preferences_touchpad_only_enabled_key" translatable="false">touchpad_only_enabled</string>
+    <string name="preferences_rumble_enabled_key" translatable="false">rumble_enabled</string>
+    <string name="preferences_motion_enabled_key" translatable="false">motion_enabled</string>
+    <string name="preferences_button_haptic_enabled_key" translatable="false">button_haptic_enabled</string>
+    <string name="preferences_log_verbose_key" translatable="false">log_verbose</string>
+    <string name="preferences_import_settings_key" translatable="false">import_settings</string>
+    <string name="preferences_export_settings_key" translatable="false">export_settings</string>
+    <string name="preferences_swap_cross_moon_key" translatable="false">swap_cross_moon</string>
+    <string name="preferences_resolution_key" translatable="false">stream_resolution</string>
+    <string name="preferences_fps_key" translatable="false">stream_fps</string>
+    <string name="preferences_bitrate_key" translatable="false">stream_bitrate</string>
+    <string name="preferences_codec_key" translatable="false">stream_codec</string>
+    <string name="preferences_controller_mapping_key" translatable="false">controller_mapping</string>
 </resources>

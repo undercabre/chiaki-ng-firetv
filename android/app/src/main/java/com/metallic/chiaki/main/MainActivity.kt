@@ -2,22 +2,17 @@
 
 package com.metallic.chiaki.main
 
-import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import androidx.activity.addCallback
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
 import com.metallic.chiaki.common.*
-import com.metallic.chiaki.common.ext.putRevealExtra
 import com.metallic.chiaki.common.ext.viewModelFactory
+import com.metallic.chiaki.controllertest.ControllerTestActivity
 import com.metallic.chiaki.databinding.ActivityMainBinding
 import com.metallic.chiaki.lib.ConnectInfo
 import com.metallic.chiaki.lib.DiscoveryHost
@@ -26,12 +21,14 @@ import com.metallic.chiaki.regist.RegistActivity
 import com.metallic.chiaki.settings.SettingsActivity
 import com.metallic.chiaki.stream.StreamActivity
 
-class MainActivity : AppCompatActivity()
+/**
+ * Fire TV home screen. Navigation: D-pad / left stick to move, Cross to select,
+ * Triangle (or Options, or ≡ on the remote) for the console context menu.
+ */
+class MainActivity : GamepadNavActivity()
 {
 	private lateinit var viewModel: MainViewModel
-
 	private lateinit var binding: ActivityMainBinding
-	private var discoveryMenuItem: MenuItem? = null
 
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
@@ -39,42 +36,45 @@ class MainActivity : AppCompatActivity()
 		binding = ActivityMainBinding.inflate(layoutInflater)
 		setContentView(binding.root)
 
-		title = ""
-		setSupportActionBar(binding.toolbar)
-
-		binding.floatingActionButton.setOnClickListener {
-			expandFloatingActionButton(!binding.floatingActionButton.isExpanded)
-		}
-		binding.floatingActionButtonDialBackground.setOnClickListener {
-			expandFloatingActionButton(false)
-		}
-
-		binding.addManualButton.setOnClickListener { addManualConsole() }
-		binding.addManualLabelButton.setOnClickListener { addManualConsole() }
-
 		binding.registerButton.setOnClickListener { showRegistration() }
-		binding.registerLabelButton.setOnClickListener { showRegistration() }
-
-		setupBackNavigation()
+		binding.addManualButton.setOnClickListener { addManualConsole() }
+		binding.settingsButton.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+		binding.controllerTestButton.setOnClickListener { startActivity(Intent(this, ControllerTestActivity::class.java)) }
+		binding.discoverButton.setOnClickListener {
+			viewModel.discoveryManager.active = !(viewModel.discoveryActive.value ?: false)
+		}
 
 		viewModel = ViewModelProvider(this, viewModelFactory { MainViewModel(getDatabase(this), Preferences(this)) })
 			.get(MainViewModel::class.java)
 
-		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered, this::wakeupHost, this::editHost, this::deleteHost)
+		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered, this::showHostMenu)
 		binding.hostsRecyclerView.adapter = recyclerViewAdapter
-		binding.hostsRecyclerView.layoutManager = LinearLayoutManager(this)
+		binding.hostsRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 		viewModel.displayHosts.observe(this, Observer {
-			val top = binding.hostsRecyclerView.computeVerticalScrollOffset() == 0
+			val hadHosts = recyclerViewAdapter.itemCount > 0
 			recyclerViewAdapter.hosts = it
-			if(top)
-				binding.hostsRecyclerView.scrollToPosition(0)
 			updateEmptyInfo()
+			if(!hadHosts && it.isNotEmpty())
+				focusFirstHost()
 		})
 
 		viewModel.discoveryActive.observe(this, Observer { active ->
-			discoveryMenuItem?.let { updateDiscoveryMenuItem(it, active) }
+			binding.discoverButton.setText(if(active) R.string.action_discover_on else R.string.action_discover_off)
+			binding.discoverButton.setIconResource(if(active) R.drawable.ic_discover_on else R.drawable.ic_discover_off)
 			updateEmptyInfo()
 		})
+
+		binding.registerButton.requestFocus()
+	}
+
+	/** Put the focus on the first console card so Cross connects right away. */
+	private fun focusFirstHost()
+	{
+		binding.hostsRecyclerView.post {
+			val focused = currentFocus
+			if(focused == null || focused == binding.registerButton)
+				binding.hostsRecyclerView.layoutManager?.findViewByPosition(0)?.requestFocus()
+		}
 	}
 
 	private fun updateEmptyInfo()
@@ -90,12 +90,6 @@ class MainActivity : AppCompatActivity()
 			binding.emptyInfoLayout.visibility = View.GONE
 	}
 
-	private fun expandFloatingActionButton(expand: Boolean)
-	{
-		binding.floatingActionButton.isExpanded = expand
-		binding.floatingActionButton.isActivated = binding.floatingActionButton.isExpanded
-	}
-
 	override fun onStart()
 	{
 		super.onStart()
@@ -108,70 +102,34 @@ class MainActivity : AppCompatActivity()
 		viewModel.discoveryManager.pause()
 	}
 
-	private fun setupBackNavigation()
-	{
-		onBackPressedDispatcher.addCallback(this) {
-			if(binding.floatingActionButton.isExpanded)
-			{
-				expandFloatingActionButton(false)
-			}
-			else
-			{
-				isEnabled = false
-				onBackPressedDispatcher.onBackPressed()
-			}
-		}
-	}
-
-	override fun onCreateOptionsMenu(menu: Menu): Boolean
-	{
-		menuInflater.inflate(R.menu.main, menu)
-		val discoveryItem = menu.findItem(R.id.action_discover)
-		discoveryMenuItem = discoveryItem
-		val discoveryActive = viewModel.discoveryActive.value ?: false
-		updateDiscoveryMenuItem(discoveryItem, discoveryActive)
-		return true
-	}
-
-	private fun updateDiscoveryMenuItem(item: MenuItem, active: Boolean)
-	{
-		item.isChecked = active
-		item.setIcon(if(active) R.drawable.ic_discover_on else R.drawable.ic_discover_off)
-	}
-
-	override fun onOptionsItemSelected(item: MenuItem): Boolean = when(item.itemId)
-	{
-		R.id.action_discover ->
-		{
-			viewModel.discoveryManager.active = !(viewModel.discoveryActive.value ?: false)
-			true
-		}
-
-		R.id.action_settings ->
-		{
-			Intent(this, SettingsActivity::class.java).also {
-				startActivity(it)
-			}
-			true
-		}
-
-		else -> super.onOptionsItemSelected(item)
-	}
-
 	private fun addManualConsole()
 	{
-		Intent(this, EditManualConsoleActivity::class.java).also {
-			it.putRevealExtra(binding.addManualButton, binding.rootLayout)
-			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
-		}
+		startActivity(Intent(this, EditManualConsoleActivity::class.java))
 	}
 
 	private fun showRegistration()
 	{
-		Intent(this, RegistActivity::class.java).also {
-			it.putRevealExtra(binding.registerButton, binding.rootLayout)
-			startActivity(it, ActivityOptions.makeSceneTransitionAnimation(this).toBundle())
+		startActivity(Intent(this, RegistActivity::class.java))
+	}
+
+	private fun showHostMenu(host: DisplayHost, canWakeup: Boolean, canEditDelete: Boolean)
+	{
+		val actions = mutableListOf<Pair<Int, () -> Unit>>()
+		if(canWakeup)
+			actions.add(R.string.action_wakeup to { wakeupHost(host) })
+		if(canEditDelete)
+		{
+			actions.add(R.string.action_edit to { editHost(host) })
+			actions.add(R.string.action_delete to { deleteHost(host) })
 		}
+		if(actions.isEmpty())
+			return
+		MaterialAlertDialogBuilder(this)
+			.setTitle(host.name)
+			.setItems(actions.map { getString(it.first) }.toTypedArray()) { _, which -> actions[which].second() }
+			.create()
+			.withGamepadNav()
+			.show()
 	}
 
 	private fun hostTriggered(host: DisplayHost)
@@ -199,6 +157,7 @@ class MainActivity : AppCompatActivity()
 					}
 					.setNegativeButton(R.string.action_connect_cancel_connect) { _, _ -> }
 					.create()
+					.withGamepadNav()
 					.show()
 			}
 			else
@@ -209,6 +168,7 @@ class MainActivity : AppCompatActivity()
 			Intent(this, RegistActivity::class.java).let {
 				it.putExtra(RegistActivity.EXTRA_HOST, host.host)
 				it.putExtra(RegistActivity.EXTRA_BROADCAST, false)
+				it.putExtra(RegistActivity.EXTRA_IS_PS5, host.isPS5)
 				if(host is ManualDisplayHost)
 					it.putExtra(RegistActivity.EXTRA_ASSIGN_MANUAL_HOST_ID, host.manualHost.id)
 				startActivity(it)
@@ -243,6 +203,7 @@ class MainActivity : AppCompatActivity()
 			}
 			.setNegativeButton(R.string.action_keep) { _, _ -> }
 			.create()
+			.withGamepadNav()
 			.show()
 	}
 }
