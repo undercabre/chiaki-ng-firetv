@@ -172,4 +172,16 @@
     <string name="preferences_firetv_profile_title">Restaurar valores óptimos (Fire TV Stick Lite + PS5)</string>
     <string name="preferences_firetv_profile_summary">1080p · 60 fps · H265 · 10 Mbps · Create = panel táctil</string>
     <string name="preferences_firetv_profile_confirm">¿Poner 1080p, 60 fps, H265, 10 Mbps y Create como panel táctil? Se sustituirán tus valores actuales de estos ajustes.</string>
+    <string name="preferences_low_latency_title">Decodificador de baja latencia</string>
+    <string name="preferences_low_latency_summary">Pide al decodificador de la Fire TV el modo tiempo real y muestra siempre el fotograma más reciente. Desactívalo solo si la imagen se rompe</string>
+    <string name="preferences_force_60hz_title">60 Hz en la tele durante la partida</string>
+    <string name="preferences_force_60hz_summary">Evita tirones y un fotograma extra de retraso cuando la Fire TV emite a 50 Hz</string>
+    <string name="preferences_stats_overlay_title">Estadísticas de la partida</string>
+    <string name="preferences_stats_overlay_summary">Tiempo de decodificación, fps, red y pérdidas en pantalla (también desde el menú en partida)</string>
+    <string name="stream_menu_stats_show">Mostrar estadísticas</string>
+    <string name="stream_menu_stats_hide">Ocultar estadísticas</string>
+    <string name="stream_stats_waiting">Estadísticas: midiendo…</string>
+    <string name="stream_stats">Decodificación: %1$.1f ms (máx %2$.1f)\nFPS: %3$.0f · RTT: %4$.0f ms\nBitrate: %5$.1f Mbps · Pérdida: %6$.1f %%\nDescartados/s: %7$.0f · Perdidos/s: %8$.0f\nDecodificador baja latencia: %9$s</string>
+    <string name="stream_stats_yes">sí</string>
+    <string name="stream_stats_no">no</string>
 </resources>

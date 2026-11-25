@@ -94,3 +94,24 @@ Fire OS 7 (Android 9), 1 GB de RAM, salida máxima 1080p y wifi 5 GHz.
 - Códec: H265 con PS5 (menos ancho de banda a igual calidad), H264 con PS4.
 - Bitrate: empieza en 10-15 Mbps por wifi 5 GHz. Si hay cortes o artefactos, baja de 2 en 2 desde el menú en partida. Por encima de ~25 Mbps la Lite no suele ganar calidad.
 - El kernel no trae el driver del DualSense: comprueba el mapeo en la Prueba del mando y configura el panel táctil en Ajustes.
+
+## Latencia mínima
+
+Activado por defecto:
+
+- **Decodificador de baja latencia**: pide al chip el modo tiempo real (claves estándar de Android y de los fabricantes conocidos) y muestra siempre el fotograma más reciente, descartando los atrasados. Si el chip rechaza la configuración, la app vuelve sola al modo normal. En el chip MediaTek de la Lite no hay clave documentada: lo que más ayuda es el descarte de fotogramas atrasados.
+- **Fotogramas sin trocear**: búferes de entrada del tamaño de un fotograma completo.
+- **60 Hz en la tele**: si la Fire TV emite a 50 Hz, cambia a 60 Hz durante la partida (evita tirones y un fotograma de retraso).
+- El mando se envía a la consola en cuanto cambia (sin intervalos).
+
+Para medir: menú en partida → **Mostrar estadísticas**. Lo que conviene ver:
+
+| Dato | Bueno | Qué hacer si es malo |
+|---|---|---|
+| Decodificación | < 15 ms | Prueba H264 o 720p |
+| FPS | 58-60 | Baja el bitrate |
+| Pérdida | < 1 % | Baja el bitrate o acerca el router / usa 5 GHz |
+| Perdidos/s | 0 | Igual que pérdida |
+| RTT | < 10 ms | Problema de red: wifi 5 GHz o Ethernet |
+
+Fuera de la app, lo que más cuenta: **modo juego en la tele** (puede ahorrar 50-100 ms) y la consola conectada por cable al router.

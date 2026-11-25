@@ -175,6 +175,19 @@
     <string name="preferences_firetv_profile_summary">1080p · 60 fps · H265 · 10 Mbps · Create = touchpad</string>
     <string name="preferences_firetv_profile_confirm">Set 1080p, 60 fps, H265, 10 Mbps and Create as touchpad? Your current values for these settings will be replaced.</string>
 
+    <string name="preferences_low_latency_title">Low latency video decoder</string>
+    <string name="preferences_low_latency_summary">Asks the Fire TV decoder for realtime mode and always shows the newest frame. Turn it off only if the picture breaks</string>
+    <string name="preferences_force_60hz_title">60 Hz on the TV while playing</string>
+    <string name="preferences_force_60hz_summary">Avoids judder and an extra frame of delay when the Fire TV outputs 50 Hz</string>
+    <string name="preferences_stats_overlay_title">Stream statistics</string>
+    <string name="preferences_stats_overlay_summary">Decode time, fps, network and losses on screen (also from the in-stream menu)</string>
+    <string name="stream_menu_stats_show">Show statistics</string>
+    <string name="stream_menu_stats_hide">Hide statistics</string>
+    <string name="stream_stats_waiting">Statistics: measuring…</string>
+    <string name="stream_stats">Decode: %1$.1f ms (max %2$.1f)\nFPS: %3$.0f · RTT: %4$.0f ms\nBitrate: %5$.1f Mbps · Loss: %6$.1f %%\nSkipped/s: %7$.0f · Lost/s: %8$.0f\nLow latency decoder: %9$s</string>
+    <string name="stream_stats_yes">yes</string>
+    <string name="stream_stats_no">no</string>
+
     <!-- Don't localize these -->
     <string name="preferences_discovery_enabled_key" translatable="false">discovery_enabled</string>
     <string name="preferences_on_screen_controls_enabled_key" translatable="false">on_screen_controls_enabled</string>
@@ -192,4 +205,7 @@
     <string name="preferences_codec_key" translatable="false">stream_codec</string>
     <string name="preferences_controller_mapping_key" translatable="false">controller_mapping</string>
     <string name="preferences_touchpad_alt_key" translatable="false">touchpad_alt</string>
+    <string name="preferences_low_latency_key" translatable="false">low_latency</string>
+    <string name="preferences_force_60hz_key" translatable="false">force_60hz</string>
+    <string name="preferences_stats_overlay_key" translatable="false">stats_overlay</string>
 </resources>

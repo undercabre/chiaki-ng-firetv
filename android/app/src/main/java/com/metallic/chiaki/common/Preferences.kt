@@ -77,7 +77,7 @@ class Preferences(context: Context)
 	 */
 	object FireTvProfile
 	{
-		const val PROFILE_VERSION = 1
+		const val PROFILE_VERSION = 2 // 2: low latency decoder + 60 Hz
 		val resolution = Resolution.RES_1080P
 		val fps = FPS.FPS_60
 		val codec = Codec.CODEC_H265
@@ -94,6 +94,8 @@ class Preferences(context: Context)
 		codec = FireTvProfile.codec
 		bitrate = FireTvProfile.BITRATE_KBPS
 		touchpadAlt = FireTvProfile.touchpadAlt
+		lowLatencyEnabled = true
+		force60Hz = true
 		onScreenControlsEnabled = false
 		touchpadOnlyEnabled = false
 		motionEnabled = false
@@ -107,6 +109,21 @@ class Preferences(context: Context)
 		if(tv && sharedPreferences.getInt(profileVersionKey, 0) < FireTvProfile.PROFILE_VERSION)
 			applyFireTvProfile()
 	}
+
+	val lowLatencyKey get() = resources.getString(R.string.preferences_low_latency_key)
+	var lowLatencyEnabled
+		get() = sharedPreferences.getBoolean(lowLatencyKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(lowLatencyKey, value).apply() }
+
+	val force60HzKey get() = resources.getString(R.string.preferences_force_60hz_key)
+	var force60Hz
+		get() = sharedPreferences.getBoolean(force60HzKey, tv)
+		set(value) { sharedPreferences.edit().putBoolean(force60HzKey, value).apply() }
+
+	val statsOverlayKey get() = resources.getString(R.string.preferences_stats_overlay_key)
+	var statsOverlay
+		get() = sharedPreferences.getBoolean(statsOverlayKey, false)
+		set(value) { sharedPreferences.edit().putBoolean(statsOverlayKey, value).apply() }
 
 	val touchpadAltKey get() = resources.getString(R.string.preferences_touchpad_alt_key)
 	var touchpadAlt

@@ -93,6 +93,8 @@ private class ChiakiNative
 		@JvmStatic external fun sessionSetSurface(ptr: Long, surface: Surface?)
 		@JvmStatic external fun sessionSetControllerState(ptr: Long, controllerState: ControllerState)
 		@JvmStatic external fun sessionSetLoginPin(ptr: Long, pin: String)
+		@JvmStatic external fun sessionSetVideoLowLatency(ptr: Long, lowLatency: Boolean)
+		@JvmStatic external fun sessionGetStats(ptr: Long): DoubleArray?
 		@JvmStatic external fun discoveryServiceCreate(result: CreateResult, options: DiscoveryServiceOptions, javaService: DiscoveryService)
 		@JvmStatic external fun discoveryServiceFree(ptr: Long)
 		@JvmStatic external fun discoveryServiceWakeup(ptr: Long, host: String, userCredential: Long, ps5: Boolean)
@@ -339,6 +341,16 @@ class Session(connectInfo: ConnectInfo, logFile: String?, logVerbose: Boolean)
 			throw CreateError(errorCode)
 		nativePtr = result.ptr
 	}
+
+	/** Call before the surface is set: the video decoder is configured then. */
+	fun setVideoLowLatency(lowLatency: Boolean)
+	{
+		if(nativePtr != 0L)
+			ChiakiNative.sessionSetVideoLowLatency(nativePtr, lowLatency)
+	}
+
+	/** Raw cumulative counters, see [StreamStats]. */
+	fun rawStats(): DoubleArray? = if(nativePtr == 0L) null else ChiakiNative.sessionGetStats(nativePtr)
 
 	fun start() = ErrorCode(ChiakiNative.sessionStart(nativePtr))
 	fun stop() = ErrorCode(ChiakiNative.sessionStop(nativePtr))

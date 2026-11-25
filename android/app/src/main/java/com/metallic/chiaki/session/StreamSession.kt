@@ -42,6 +42,12 @@ class StreamSession(connectInfo: ConnectInfo, val logManager: LogManager, val lo
 		}
 	}
 
+	/** Fire TV: low latency video decoder (set before resume). */
+	var videoLowLatency = true
+
+	/** Cumulative native stream counters, null when not connected. */
+	fun rawStats(): DoubleArray? = session?.rawStats()
+
 	fun shutdown()
 	{
 		session?.stop()
@@ -71,6 +77,7 @@ class StreamSession(connectInfo: ConnectInfo, val logManager: LogManager, val lo
 		try
 		{
 			val session = Session(connectInfo, logManager.createNewFile().file.absolutePath, logVerbose)
+			session.setVideoLowLatency(videoLowLatency)
 			_state.value = StreamStateConnecting
 			session.eventCallback = this::eventCallback
 			session.start()

@@ -453,6 +453,43 @@ JNIEXPORT void JNICALL JNI_FCN(sessionSetControllerState)(JNIEnv *env, jobject o
 	chiaki_session_set_controller_state(&session->session, &controller_state);
 }
 
+JNIEXPORT void JNICALL JNI_FCN(sessionSetVideoLowLatency)(JNIEnv *env, jobject obj, jlong ptr, jboolean low_latency)
+{
+	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	android_chiaki_video_decoder_set_low_latency(&session->video_decoder, low_latency ? true : false);
+}
+
+/**
+ * Stream statistics for the on-screen overlay:
+ * [0] frames rendered, [1] frames dropped (newer frame ready), [2] frames lost (network),
+ * [3] decode time sum (us), [4] decode samples, [5] decode time max since last call (us),
+ * [6] RTT measured at connection (ms), [7] measured bitrate (Mbps), [8] packet loss (0-1),
+ * [9] low latency decoder accepted (0/1)
+ */
+JNIEXPORT jdoubleArray JNICALL JNI_FCN(sessionGetStats)(JNIEnv *env, jobject obj, jlong ptr)
+{
+	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;
+	AndroidChiakiVideoDecoderStats stats;
+	bool low_latency_active = false;
+	android_chiaki_video_decoder_get_stats(&session->video_decoder, &stats, &low_latency_active);
+	jdouble values[10] = {
+		(jdouble)stats.frames_rendered,
+		(jdouble)stats.frames_dropped,
+		(jdouble)stats.frames_lost,
+		(jdouble)stats.decode_us_sum,
+		(jdouble)stats.decode_samples,
+		(jdouble)stats.decode_us_max,
+		(jdouble)session->session.rtt_us / 1000.0,
+		(jdouble)session->session.stream_connection.measured_bitrate,
+		(jdouble)session->session.stream_connection.congestion_control.packet_loss,
+		low_latency_active ? 1.0 : 0.0
+	};
+	jdoubleArray result = E->NewDoubleArray(env, 10);
+	if(result)
+		E->SetDoubleArrayRegion(env, result, 0, 10, values);
+	return result;
+}
+
 JNIEXPORT void JNICALL JNI_FCN(sessionSetLoginPin)(JNIEnv *env, jobject obj, jlong ptr, jstring pin_java)
 {
 	AndroidChiakiSession *session = (AndroidChiakiSession *)ptr;

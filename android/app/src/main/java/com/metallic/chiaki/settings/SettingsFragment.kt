@@ -36,6 +36,9 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.rumbleEnabledKey -> preferences.rumbleEnabled
 		preferences.motionEnabledKey -> preferences.motionEnabled
 		preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled
+		preferences.lowLatencyKey -> preferences.lowLatencyEnabled
+		preferences.force60HzKey -> preferences.force60Hz
+		preferences.statsOverlayKey -> preferences.statsOverlay
 		else -> defValue
 	}
 
@@ -48,6 +51,9 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 			preferences.rumbleEnabledKey -> preferences.rumbleEnabled = value
 			preferences.motionEnabledKey -> preferences.motionEnabled = value
 			preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled = value
+			preferences.lowLatencyKey -> preferences.lowLatencyEnabled = value
+			preferences.force60HzKey -> preferences.force60Hz = value
+			preferences.statsOverlayKey -> preferences.statsOverlay = value
 		}
 	}
 

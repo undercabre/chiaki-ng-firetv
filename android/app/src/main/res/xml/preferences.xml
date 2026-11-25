@@ -83,6 +83,24 @@
             app:summary="@string/preferences_firetv_profile_summary"
             app:icon="@drawable/ic_resolution"/>
 
+        <SwitchPreference
+            app:key="@string/preferences_low_latency_key"
+            app:title="@string/preferences_low_latency_title"
+            app:summary="@string/preferences_low_latency_summary"
+            app:icon="@drawable/ic_codec" />
+
+        <SwitchPreference
+            app:key="@string/preferences_force_60hz_key"
+            app:title="@string/preferences_force_60hz_title"
+            app:summary="@string/preferences_force_60hz_summary"
+            app:icon="@drawable/ic_fps" />
+
+        <SwitchPreference
+            app:key="@string/preferences_stats_overlay_key"
+            app:title="@string/preferences_stats_overlay_title"
+            app:summary="@string/preferences_stats_overlay_summary"
+            app:icon="@drawable/ic_log" />
+
         <ListPreference
             app:key="@string/preferences_resolution_key"
             app:title="@string/preferences_resolution_title"

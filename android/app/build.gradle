@@ -28,7 +28,7 @@ android {
         applicationId "com.metallic.chiaki.firetv"
         minSdk 24
         targetSdk 35
-        versionCode 14
+        versionCode 15
         versionName "${chiakiVersion}-firetv"
         ndk {
             // Fire TV sticks: mostly 32-bit userland (armeabi-v7a), newer models arm64

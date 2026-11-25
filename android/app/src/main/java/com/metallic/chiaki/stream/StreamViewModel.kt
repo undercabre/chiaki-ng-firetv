@@ -18,7 +18,9 @@ class StreamViewModel(val application: Application, val connectInfo: ConnectInfo
 
 	private var _session: StreamSession? = null
 	val input = StreamInput(application, preferences)
-	val session = StreamSession(connectInfo, logManager, preferences.logVerbose, input)
+	val session = StreamSession(connectInfo, logManager, preferences.logVerbose, input).also {
+		it.videoLowLatency = preferences.lowLatencyEnabled
+	}
 
 	private var _onScreenControlsEnabled = MutableLiveData<Boolean>(preferences.onScreenControlsEnabled)
 	val onScreenControlsEnabled: LiveData<Boolean> get() = _onScreenControlsEnabled

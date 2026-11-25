@@ -105,7 +105,10 @@ class StreamActivity : AppCompatActivity()
 			}
 			if(savedInstanceState == null)
 				Toast.makeText(this, R.string.stream_menu_hint, Toast.LENGTH_LONG).show()
+			if(viewModel.preferences.force60Hz)
+				preferRefreshRate60()
 		}
+		updateStatsOverlay()
 
 		WindowCompat.setDecorFitsSystemWindows(window, false)
 		insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -176,6 +179,54 @@ class StreamActivity : AppCompatActivity()
 		}
 	}
 
+	/**
+	 * Fire TV in Europe often outputs 50 Hz: a 60 fps stream then judders and gets an extra frame
+	 * of latency. Ask the TV for a 60 Hz mode with the same resolution while streaming
+	 * (Android restores the previous mode when the activity closes).
+	 */
+	private fun preferRefreshRate60()
+	{
+		if(Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
+			return
+		@Suppress("DEPRECATION")
+		val display = windowManager.defaultDisplay
+		val current = display.mode
+		val best = display.supportedModes
+			.filter { it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight }
+			.minByOrNull { kotlin.math.abs(it.refreshRate - 60f) } ?: return
+		if(kotlin.math.abs(best.refreshRate - 60f) > 1f || best.modeId == current.modeId)
+			return
+		window.attributes = window.attributes.also { it.preferredDisplayModeId = best.modeId }
+	}
+
+	// --- statistics overlay -------------------------------------------------------------------
+
+	private val statsCalculator = com.metallic.chiaki.session.StreamStatsCalculator()
+	private val statsRunnable = object: Runnable {
+		override fun run()
+		{
+			statsCalculator.update(viewModel.session.rawStats())?.let { s ->
+				binding.statsTextView.text = getString(R.string.stream_stats,
+					s.decodeMsAvg, s.decodeMsMax, s.fps, s.rttMs, s.bitrateMbps, s.packetLossPercent,
+					s.droppedPerSecond, s.lostPerSecond,
+					getString(if(s.lowLatencyDecoder) R.string.stream_stats_yes else R.string.stream_stats_no))
+			}
+			uiVisibilityHandler.postDelayed(this, 1000)
+		}
+	}
+
+	private fun updateStatsOverlay()
+	{
+		val enabled = viewModel.preferences.statsOverlay
+		binding.statsTextView.isVisible = enabled
+		uiVisibilityHandler.removeCallbacks(statsRunnable)
+		if(enabled)
+		{
+			binding.statsTextView.setText(R.string.stream_stats_waiting)
+			uiVisibilityHandler.post(statsRunnable)
+		}
+	}
+
 	/** Vibrator of the game controller in use (DualSense rumble), if Fire OS exposes one. */
 	private fun controllerVibrator(): Vibrator?
 	{
@@ -207,6 +258,10 @@ class StreamActivity : AppCompatActivity()
 				{ binding.displayModeToggle.check(modeIds[nextMode]) })
 		actions.add(getString(R.string.stream_menu_bitrate, viewModel.session.connectInfo.videoProfile.bitrate / 1000) to
 				{ binding.root.post { showStreamBitrateDialog() } })
+		actions.add(getString(if(viewModel.preferences.statsOverlay) R.string.stream_menu_stats_hide else R.string.stream_menu_stats_show) to {
+			viewModel.preferences.statsOverlay = !viewModel.preferences.statsOverlay
+			updateStatsOverlay()
+		})
 		actions.add(getString(R.string.stream_menu_disconnect) to { finish() })
 		val menuDialog = MaterialAlertDialogBuilder(this)
 			.setTitle(R.string.stream_menu_title)
@@ -289,6 +344,7 @@ class StreamActivity : AppCompatActivity()
 	{
 		super.onDestroy()
 		controlsJob?.cancel()
+		uiVisibilityHandler.removeCallbacks(statsRunnable)
 		if(::viewModel.isInitialized)
 			viewModel.input.menuRequestedCallback = null
 	}
