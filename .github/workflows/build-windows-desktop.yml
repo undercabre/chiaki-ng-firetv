@@ -1,0 +1,141 @@
+name: Build chiaki-ng desktop Windows (frame generation fork)
+
+on:
+  # Desktop releases use their own tags (desktop-v*), separate from the Fire TV tags (firetv-v*)
+  push:
+    tags: [ 'desktop-v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows_x64-msys2:
+    name: Build Windows x64 (MSYS2)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      sdl2_compat_tag: 2.32.74
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - name: Disable autocrlf
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: git diffutils
+          pacboy: >-
+            ca-certificates:p
+            cc:p
+            cmake:p
+            curl:p
+            fast_float:p
+            fftw:p
+            json-c:p
+            libevent:p
+            lcms2:p
+            libdovi:p
+            meson:p
+            miniupnpc:p
+            gcc:p
+            nasm:p
+            ninja:p
+            openssl:p
+            opus:p
+            pkgconf:p
+            protobuf:p
+            python:p
+            python-psutil:p
+            python-glad:p
+            python-jinja:p
+            python-pip:p
+            qt6-base:p
+            qt6-declarative:p
+            qt6-svg:p
+            shaderc:p
+            speexdsp:p
+            spirv-cross:p
+            vulkan:p
+            vulkan-headers:p
+            compiler-rt:p
+
+      - name: Install python protobuf and zip
+        run: |
+          pip install protobuf
+          pacman -S git make unzip zip --noconfirm
+
+      - name: Build libplacebo
+        run: |
+          scripts/build-libplacebo-windows.sh
+
+      - name: Setup ffmpeg
+        run: |
+          curl -LO https://github.com/streetpea/FFmpeg-Builds/releases/download/latest/ffmpeg-n9.0-latest-win64-gpl-shared-9.0.zip
+          unzip -q ffmpeg-n9.0-latest-win64-gpl-shared-9.0.zip
+          cp -a "ffmpeg-n9.0-latest-win64-gpl-shared-9.0/bin/." /mingw64/bin
+          cp -a "ffmpeg-n9.0-latest-win64-gpl-shared-9.0/include/." /mingw64/include
+          cp -a "ffmpeg-n9.0-latest-win64-gpl-shared-9.0/lib/." /mingw64/lib
+
+      - name: Build sdl2-compat
+        run: |
+          INSTALL_PREFIX=/mingw64 scripts/build-sdl2-compat.sh .
+          INSTALL_PREFIX=/mingw64 scripts/build-hidapi.sh .
+          cp /mingw64/lib/pkgconfig/sdl2-compat.pc /mingw64/lib/pkgconfig/sdl2.pc
+
+      - name: Configure chiaki-ng
+        run: |
+          cmake -S . -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCHIAKI_ENABLE_CLI=OFF
+
+      - name: Build chiaki-ng
+        run: |
+          cmake --build build --config Release --target chiaki
+
+      - name: Deploy chiaki-ng
+        run: |
+          ./scripts/deploy-windows-msys2.sh chiaki-ng-Win build/gui/chiaki.exe "${{ github.workspace }}/build/third-party/cpp-steam-tools" /mingw64 gui/src/qml
+
+      - name: Package chiaki-ng
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/desktop-v* ]]; then
+            VERSION="${GITHUB_REF_NAME#desktop-v}"
+          else
+            VERSION="test-${GITHUB_SHA::8}"
+          fi
+          RELEASE_PACKAGE_FILE="chiaki-ng-desktop-win_x64-portable-${VERSION}.zip"
+          zip -qr "$RELEASE_PACKAGE_FILE" chiaki-ng-Win
+          echo "RELEASE_PACKAGE_PATH=${RELEASE_PACKAGE_FILE}" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: chiaki-ng-desktop-win_x64-portable
+          path: ${{ env.RELEASE_PACKAGE_PATH }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' $env:GITHUB_REF_NAME
+          if (-not $notes) { $notes = "chiaki-ng desktop for Windows (frame generation fork)." }
+          $notes | Out-File -Encoding utf8 release_notes.md
+          gh release create $env:GITHUB_REF_NAME $env:RELEASE_PACKAGE_PATH `
+            --repo $env:GITHUB_REPOSITORY `
+            --title "chiaki-ng desktop $env:GITHUB_REF_NAME" `
+            --notes-file release_notes.md `
+            --prerelease
