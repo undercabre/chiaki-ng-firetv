@@ -18,8 +18,12 @@ data class StreamStateCreateError(val error: CreateError): StreamState()
 data class StreamStateQuit(val reason: QuitReason, val reasonString: String?): StreamState()
 data class StreamStateLoginPinRequest(val pinIncorrect: Boolean): StreamState()
 
-class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, val logVerbose: Boolean, val input: StreamInput)
+class StreamSession(connectInfo: ConnectInfo, val logManager: LogManager, val logVerbose: Boolean, val input: StreamInput)
 {
+	/** Can change during the session: the bitrate can be modified from the in-stream menu (reconnects). */
+	var connectInfo: ConnectInfo = connectInfo
+		private set
+
 	var session: Session? = null
 		private set
 
@@ -45,6 +49,14 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
 		session = null
 		_state.value = StreamStateIdle
 		//surfaceTexture?.release()
+	}
+
+	/** Restart the session with another bitrate (kbps). */
+	fun reconnectWithBitrate(bitrateKbps: Int)
+	{
+		connectInfo = connectInfo.copy(videoProfile = connectInfo.videoProfile.copy(bitrate = bitrateKbps))
+		shutdown()
+		resume()
 	}
 
 	fun pause()

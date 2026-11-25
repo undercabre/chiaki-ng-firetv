@@ -13,8 +13,8 @@ El motor de streaming (`lib/`) es el de chiaki-ng, sin cambios. Solo cambia la a
 | PIN de 8 cifras (registro) y de 4 cifras (inicio de sesión) | Selector de cifras: ↑ ↓ cambia la cifra, ← → se desplaza, también con las teclas numéricas del mando a distancia |
 | Fire OS no siempre trae el driver del DualSense (botones desordenados: Cruz = atrás…) | Detección automática y corrección del mapeo HID «en bruto». Ajuste manual y pantalla de **Prueba del mando** |
 | Sin forma de salir del juego (Círculo pertenece al juego) | Menú en partida: **L1 + R1 + Create + Options** a la vez, o Atrás en el mando de la Fire TV |
-| Botón PS y panel táctil a veces no llegan | El menú en partida permite enviar «botón PS» y «panel táctil» |
-| Bitrate con campo de texto | Lista de valores (5 a 50 Mbps) |
+| Botón PS y panel táctil a veces no llegan | El touchpad se captura como puntero (dedos, deslizamientos y clic). Si Fire OS solo entrega el clic como tecla desconocida, *Ajustes → Aprender clic del panel táctil*. Alternativa: Create o L3+R3 como panel táctil. El menú en partida también envía PS y panel táctil |
+| Bitrate con campo de texto | Valor libre de 2 a 100 Mbps con el mando (← → ±1, L1/R1 ±10, teclas numéricas). También se cambia desde el menú en partida, que reconecta al momento |
 | Borrar consola registrada deslizando | Cruz sobre la consola → borrar |
 | Importar ajustes con un selector de archivos (no existe en Fire TV) | Importación desde el móvil (QR) |
 | Vibración del teléfono | Vibración enviada al mando cuando Fire OS lo permite |
@@ -57,7 +57,7 @@ Atajo: si ya usas Chiaki en un móvil Android, exporta los ajustes allí y enví
 
 - **No probado todavía en una Fire TV real.** El mapeo «sin driver» se basa en el orden HID estándar del DualSense con `hid-generic`. Verifícalo con la Prueba del mando.
 - Giroscopio, gatillos adaptativos y altavoz del DualSense: no se transmiten (Android no los expone por Bluetooth sin driver).
-- Panel táctil: solo el clic, si el kernel lo expone, o mediante el menú en partida. No hay deslizamiento.
+- Panel táctil: en Fire OS 7 sin driver lo normal es que solo llegue el clic (apréndelo en Ajustes) o nada (usa Create o L3+R3 como alternativa). Los deslizamientos solo funcionan si la Prueba del mando muestra «Dedos» al mover un dedo.
 - Botón PS: Fire OS puede capturarlo para ir al inicio. Usa «Pulsar botón PS» en el menú.
 - 1080p requiere PS5 o PS4 Pro. Con una PS4 normal, baja a 720p en Ajustes.
 - H265 solo funciona con PS5. Las Fire TV Stick 4K/4K Max lo decodifican por hardware; los modelos básicos más antiguos pueden ir mejor con H264.
@@ -85,3 +85,12 @@ Añade en GitHub (*Settings → Secrets and variables → Actions*): `CHIAKI_KEY
 ## Licencia
 
 AGPL-3.0, como chiaki-ng. Si distribuyes el APK, publica también el código fuente de tu fork.
+
+## Fire TV Stick Lite
+
+Fire OS 7 (Android 9), 1 GB de RAM, salida máxima 1080p y wifi 5 GHz.
+
+- Resolución: 1080p con PS5, 720p con PS4 normal. No pidas más de lo que la tele recibe.
+- Códec: H265 con PS5 (menos ancho de banda a igual calidad), H264 con PS4.
+- Bitrate: empieza en 10-15 Mbps por wifi 5 GHz. Si hay cortes o artefactos, baja de 2 en 2 desde el menú en partida. Por encima de ~25 Mbps la Lite no suele ganar calidad.
+- El kernel no trae el driver del DualSense: comprueba el mapeo en la Prueba del mando y configura el panel táctil en Ajustes.

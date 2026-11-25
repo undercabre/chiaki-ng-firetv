@@ -54,10 +54,23 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp" />
 
+    <TextView
+        android:id="@+id/touchpadTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="monospace"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:text="@string/controller_test_touchpad_none" />
+
     <View
+        android:id="@+id/captureView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
 
     <TextView
         android:layout_width="match_parent"

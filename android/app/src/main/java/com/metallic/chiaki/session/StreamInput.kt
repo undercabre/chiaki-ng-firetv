@@ -27,7 +27,20 @@ class StreamInput(val context: Context, val preferences: Preferences)
 
 	val controllerState: ControllerState get()
 	{
-		val controllerState = sensorControllerState or keyControllerState or motionControllerState or pulseControllerState
+		val controllerState = sensorControllerState or keyControllerState or motionControllerState or pulseControllerState or touchpadControllerState
+
+		// Touchpad alternatives (Fire OS without DualSense driver may not deliver the touchpad at all)
+		controllerState.buttons = controllerState.buttons.let { b ->
+			val l3r3 = ControllerState.BUTTON_L3 or ControllerState.BUTTON_R3
+			when
+			{
+				Gamepad.touchpadAlt == Gamepad.TouchpadAlt.CREATE && b and ControllerState.BUTTON_SHARE != 0U ->
+					(b and ControllerState.BUTTON_SHARE.inv()) or ControllerState.BUTTON_TOUCHPAD
+				Gamepad.touchpadAlt == Gamepad.TouchpadAlt.L3_R3 && b and l3r3 == l3r3 ->
+					(b and l3r3.inv()) or ControllerState.BUTTON_TOUCHPAD
+				else -> b
+			}
+		}
 
 		val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 		@Suppress("DEPRECATION")
@@ -58,6 +71,8 @@ class StreamInput(val context: Context, val preferences: Preferences)
 	private val keyControllerState = ControllerState() // from KeyEvents
 	private val motionControllerState = ControllerState() // from MotionEvents
 	private val pulseControllerState = ControllerState() // short virtual presses from the in-stream menu
+	private val touchpadControllerState = ControllerState() // DualSense touchpad through pointer capture
+	private val touchpadPointerIds = HashMap<Int, UByte>() // Android pointer id -> chiaki touch id
 	var touchControllerState = ControllerState()
 		set(value)
 		{
@@ -249,6 +264,76 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		if(event.action == KeyEvent.ACTION_DOWN)
 			checkMenuCombo()
 		return true
+	}
+
+	/**
+	 * Events of the DualSense touchpad while the stream view holds pointer capture.
+	 * Absolute touchpad events give real finger positions (swipes); any pointer device gives the click.
+	 */
+	fun onCapturedPointerEvent(event: MotionEvent): Boolean
+	{
+		var changed = false
+
+		val clickPressed = event.buttonState and (MotionEvent.BUTTON_PRIMARY or MotionEvent.BUTTON_SECONDARY) != 0
+		val wasPressed = touchpadControllerState.buttons and ControllerState.BUTTON_TOUCHPAD != 0U
+		if(clickPressed != wasPressed)
+		{
+			touchpadControllerState.buttons = if(clickPressed) ControllerState.BUTTON_TOUCHPAD else 0U
+			changed = true
+		}
+
+		if(event.isFromSource(InputDevice.SOURCE_TOUCHPAD))
+		{
+			val device = event.device
+			val rangeX = device?.getMotionRange(MotionEvent.AXIS_X, event.source)
+			val rangeY = device?.getMotionRange(MotionEvent.AXIS_Y, event.source)
+			fun mapAxis(v: Float, range: InputDevice.MotionRange?, size: UShort): UShort
+			{
+				val span = (range?.range ?: 0f).takeIf { it > 0f } ?: return 0U
+				val n = ((v - range!!.min) / span).coerceIn(0f, 1f)
+				return (n * (size.toInt() - 1)).toInt().toUShort()
+			}
+			fun x(i: Int) = mapAxis(event.getX(i), rangeX, ControllerState.TOUCHPAD_WIDTH)
+			fun y(i: Int) = mapAxis(event.getY(i), rangeY, ControllerState.TOUCHPAD_HEIGHT)
+
+			when(event.actionMasked)
+			{
+				MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+					val i = event.actionIndex
+					touchpadControllerState.startTouch(x(i), y(i))?.let { touchpadPointerIds[event.getPointerId(i)] = it }
+					changed = true
+				}
+				MotionEvent.ACTION_MOVE -> {
+					for(i in 0 until event.pointerCount)
+					{
+						val id = touchpadPointerIds[event.getPointerId(i)] ?: continue
+						changed = touchpadControllerState.setTouchPos(id, x(i), y(i)) || changed
+					}
+				}
+				MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+					touchpadPointerIds.remove(event.getPointerId(event.actionIndex))?.let { touchpadControllerState.stopTouch(it) }
+					changed = true
+				}
+				MotionEvent.ACTION_CANCEL -> {
+					touchpadPointerIds.values.forEach { touchpadControllerState.stopTouch(it) }
+					touchpadPointerIds.clear()
+					changed = true
+				}
+			}
+		}
+
+		if(changed)
+			controllerStateUpdated()
+		return true
+	}
+
+	/** Pointer capture lost (dialog, pause): lift fingers and the click. */
+	fun releaseTouchpad()
+	{
+		touchpadPointerIds.values.forEach { touchpadControllerState.stopTouch(it) }
+		touchpadPointerIds.clear()
+		touchpadControllerState.buttons = 0U
+		controllerStateUpdated()
 	}
 
 	fun onGenericMotionEvent(event: MotionEvent): Boolean

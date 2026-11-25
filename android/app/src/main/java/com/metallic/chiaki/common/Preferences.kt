@@ -41,6 +41,9 @@ class Preferences(context: Context)
 
 	companion object
 	{
+		/** Same range as chiaki-ng desktop (2 to 100 Mbps). */
+		const val BITRATE_MIN_KBPS = 2000
+		const val BITRATE_MAX_KBPS = 100000
 		val resolutionDefault = Resolution.RES_720P
 		val resolutionAll = Resolution.values()
 		val fpsDefault = FPS.FPS_60
@@ -66,6 +69,11 @@ class Preferences(context: Context)
 	var controllerMapping
 		get() = Gamepad.Mapping.fromValue(sharedPreferences.getString(controllerMappingKey, Gamepad.Mapping.AUTO.value))
 		set(value) { sharedPreferences.edit().putString(controllerMappingKey, value.value).apply() }
+
+	val touchpadAltKey get() = resources.getString(R.string.preferences_touchpad_alt_key)
+	var touchpadAlt
+		get() = Gamepad.TouchpadAlt.fromValue(sharedPreferences.getString(touchpadAltKey, Gamepad.TouchpadAlt.NONE.value))
+		set(value) { sharedPreferences.edit().putString(touchpadAltKey, value.value).apply() }
 
 	val discoveryEnabledKey get() = resources.getString(R.string.preferences_discovery_enabled_key)
 	var discoveryEnabled
@@ -121,7 +129,7 @@ class Preferences(context: Context)
 		}  ?: fpsDefault
 		set(value) { sharedPreferences.edit().putString(fpsKey, value.value).apply() }
 
-	fun validateBitrate(bitrate: Int) = max(2000, min(50000, bitrate))
+	fun validateBitrate(bitrate: Int) = max(BITRATE_MIN_KBPS, min(BITRATE_MAX_KBPS, bitrate))
 	val bitrateKey get() = resources.getString(R.string.preferences_bitrate_key)
 	var bitrate
 		get() = sharedPreferences.getInt(bitrateKey, 0).let { if(it == 0) null else validateBitrate(it) }

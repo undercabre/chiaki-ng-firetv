@@ -25,6 +25,17 @@
             app:summary="@string/preferences_controller_test_summary"
             app:icon="@drawable/ic_gamepad" />
 
+        <Preference
+            app:key="touchpad_learn"
+            app:title="@string/preferences_touchpad_learn_title"
+            app:icon="@drawable/ic_gamepad" />
+
+        <ListPreference
+            app:key="@string/preferences_touchpad_alt_key"
+            app:title="@string/preferences_touchpad_alt_title"
+            app:summary="%s"
+            app:icon="@drawable/ic_gamepad" />
+
         <SwitchPreference
             app:key="@string/preferences_swap_cross_moon_key"
             app:title="@string/preferences_swap_cross_moon_title"
@@ -78,7 +89,7 @@
             app:summary="%s"
             app:icon="@drawable/ic_fps"/>
 
-        <ListPreference
+        <Preference
             app:key="@string/preferences_bitrate_key"
             app:title="@string/preferences_bitrate_title"
             app:icon="@drawable/ic_bitrate"/>

@@ -149,4 +149,22 @@
     <string name="preferences_import_settings_phone_title">Importar ajustes desde el móvil</string>
     <string name="preferences_import_settings_phone_summary">Envía desde el móvil el JSON exportado por Chiaki en Android</string>
     <string name="no_app_for_action">Ninguna aplicación de este dispositivo puede hacerlo.</string>
+    <string name="bitrate_dialog_help">← → ±1 Mbps · L1 / R1 ±10 Mbps · las teclas numéricas del mando a distancia escriben el valor.\nAutomático: %d kbps. Fire TV Stick Lite por wifi: prueba entre 8 y 20 Mbps.</string>
+    <string name="bitrate_dialog_auto">Automático</string>
+    <string name="stream_menu_bitrate">Bitrate: %d Mbps (cambiar y reconectar)</string>
+    <string name="stream_bitrate_title">Bitrate (la partida se reconecta)</string>
+    <string name="controller_test_learn_touchpad">Pulsa ahora una vez el PANEL TÁCTIL (clic).\nLa tecla que genere se usará como panel táctil. Mantén Círculo para cancelar.</string>
+    <string name="controller_test_touchpad_none">Panel táctil: no llega ningún evento de puntero (desliza un dedo por él)</string>
+    <string name="controller_test_touchpad">Panel táctil: %1$s · %2$s\nDedos: %3$s  Clic: %4$s</string>
+    <string name="controller_test_touchpad_pointer_ok">El panel táctil funciona como puntero: los dedos y el clic ya se envían a la consola.</string>
+    <string name="controller_test_touchpad_learned">Clic del panel táctil aprendido: %1$s (scan %2$d)</string>
+    <string name="preferences_touchpad_learn_title">Aprender clic del panel táctil</string>
+    <string name="preferences_touchpad_learn_summary">Úsalo si el clic del panel táctil no hace nada en la partida</string>
+    <string name="preferences_touchpad_learn_summary_done">Aprendido: %1$s (scan %2$d)</string>
+    <string name="touchpad_learn_again">Volver a aprender</string>
+    <string name="touchpad_learn_forget">Olvidar</string>
+    <string name="preferences_touchpad_alt_title">Botón alternativo para el panel táctil</string>
+    <string name="preferences_touchpad_alt_none">Ninguno</string>
+    <string name="preferences_touchpad_alt_create">Create hace de panel táctil</string>
+    <string name="preferences_touchpad_alt_l3r3">L3 + R3 a la vez = panel táctil</string>
 </resources>

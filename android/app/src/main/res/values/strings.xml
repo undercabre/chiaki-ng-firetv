@@ -150,6 +150,25 @@
     <string name="preferences_import_settings_phone_summary">Send the JSON exported by Chiaki on Android from your phone</string>
     <string name="no_app_for_action">No app on this device can do that.</string>
 
+    <string name="bitrate_dialog_help">← → ±1 Mbps · L1 / R1 ±10 Mbps · number keys of the remote type the value.\nAutomatic: %d kbps. Fire TV Stick Lite on Wi-Fi: try 8 to 20 Mbps.</string>
+    <string name="bitrate_dialog_auto">Automatic</string>
+    <string name="stream_menu_bitrate">Bitrate: %d Mbps (change and reconnect)</string>
+    <string name="stream_bitrate_title">Bitrate (the stream reconnects)</string>
+    <string name="controller_test_learn_touchpad">Press the TOUCHPAD (click) once now.\nThe key it produces will be used as touchpad. Hold Circle to cancel.</string>
+    <string name="controller_test_touchpad_none">Touchpad: no pointer event received (move a finger on it)</string>
+    <string name="controller_test_touchpad">Touchpad: %1$s · %2$s\nFingers: %3$s  Click: %4$s</string>
+    <string name="controller_test_touchpad_pointer_ok">The touchpad works as pointer: fingers and click are already sent to the console.</string>
+    <string name="controller_test_touchpad_learned">Touchpad click learned: %1$s (scan %2$d)</string>
+    <string name="preferences_touchpad_learn_title">Learn touchpad click</string>
+    <string name="preferences_touchpad_learn_summary">Use it if the touchpad click does nothing in game</string>
+    <string name="preferences_touchpad_learn_summary_done">Learned: %1$s (scan %2$d)</string>
+    <string name="touchpad_learn_again">Learn again</string>
+    <string name="touchpad_learn_forget">Forget</string>
+    <string name="preferences_touchpad_alt_title">Alternative touchpad button</string>
+    <string name="preferences_touchpad_alt_none">None</string>
+    <string name="preferences_touchpad_alt_create">Create acts as touchpad</string>
+    <string name="preferences_touchpad_alt_l3r3">L3 + R3 together = touchpad</string>
+
     <!-- Don't localize these -->
     <string name="preferences_discovery_enabled_key" translatable="false">discovery_enabled</string>
     <string name="preferences_on_screen_controls_enabled_key" translatable="false">on_screen_controls_enabled</string>
@@ -166,4 +185,5 @@
     <string name="preferences_bitrate_key" translatable="false">stream_bitrate</string>
     <string name="preferences_codec_key" translatable="false">stream_codec</string>
     <string name="preferences_controller_mapping_key" translatable="false">controller_mapping</string>
+    <string name="preferences_touchpad_alt_key" translatable="false">touchpad_alt</string>
 </resources>

@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.BitrateDialog
 import com.metallic.chiaki.common.Gamepad
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.exportAndShareAllSettings
@@ -57,6 +58,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.bitrateKey -> preferences.bitrate?.toString() ?: ""
 		preferences.codecKey -> preferences.codec.value
 		preferences.controllerMappingKey -> preferences.controllerMapping.value
+		preferences.touchpadAltKey -> preferences.touchpadAlt.value
 		else -> defValue
 	}
 
@@ -81,6 +83,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 				preferences.codec = codec
 			}
 			preferences.controllerMappingKey -> preferences.controllerMapping = Gamepad.Mapping.fromValue(value)
+			preferences.touchpadAltKey -> preferences.touchpadAlt = Gamepad.TouchpadAlt.fromValue(value)
 		}
 	}
 }
@@ -90,9 +93,6 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	companion object
 	{
 		private const val PICK_SETTINGS_JSON_REQUEST = 1
-
-		/** Bitrate choices in kbps. Empty = automatic. A list instead of a text field: no keyboard on Fire TV. */
-		private val BITRATES = listOf(5000, 8000, 10000, 15000, 20000, 25000, 30000, 40000, 50000)
 	}
 
 	private lateinit var preferences: Preferences
@@ -119,22 +119,22 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			it.entries = Preferences.fpsAll.map { fps -> getString(fps.title) }.toTypedArray()
 		}
 
-		val bitratePreference = preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_bitrate_key))
-		fun updateBitrateEntries()
+		// Free value 2-100 Mbps, adjustable with the controller (no keyboard on Fire TV)
+		val bitratePreference = preferenceScreen.findPreference<Preference>(getString(R.string.preferences_bitrate_key))
+		fun updateBitrateSummary()
 		{
-			bitratePreference ?: return
-			bitratePreference.entryValues = (listOf("") + BITRATES.map { it.toString() }).toTypedArray()
-			bitratePreference.entries = (listOf(getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)) +
-					BITRATES.map { getString(R.string.preferences_bitrate_value, it / 1000) }).toTypedArray()
-			bitratePreference.summary = preferences.bitrate?.let { getString(R.string.preferences_bitrate_value, it / 1000) }
+			bitratePreference?.summary = preferences.bitrate?.let { getString(R.string.preferences_bitrate_value, it / 1000) }
 				?: getString(R.string.preferences_bitrate_auto, preferences.bitrateAuto)
 		}
-		updateBitrateEntries()
-		bitratePreference?.setOnPreferenceChangeListener { _, _ ->
-			listView?.post { updateBitrateEntries() }
+		updateBitrateSummary()
+		bitratePreference?.setOnPreferenceClickListener {
+			BitrateDialog.show(context, getString(R.string.preferences_bitrate_title), preferences.bitrate, preferences.bitrateAuto) {
+				preferences.bitrate = it
+				updateBitrateSummary()
+			}
 			true
 		}
-		viewModel.bitrateAuto.observe(this, Observer { updateBitrateEntries() })
+		viewModel.bitrateAuto.observe(this, Observer { updateBitrateSummary() })
 
 		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_codec_key))?.let {
 			it.entryValues = Preferences.codecAll.map { codec -> codec.value }.toTypedArray()
@@ -156,6 +156,45 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		preferenceScreen.findPreference<Preference>("controller_test")?.setOnPreferenceClickListener {
 			startActivity(Intent(context, ControllerTestActivity::class.java))
 			true
+		}
+
+		// Touchpad: learn the key its click produces on this Fire TV, or use another button instead
+		touchpadLearnPreference = preferenceScreen.findPreference("touchpad_learn")
+		touchpadLearnPreference?.setOnPreferenceClickListener {
+			val learn = {
+				startActivity(Intent(context, ControllerTestActivity::class.java)
+					.putExtra(ControllerTestActivity.EXTRA_LEARN_TOUCHPAD, true))
+			}
+			if(!Gamepad.hasLearnedTouchpad)
+				learn()
+			else
+				MaterialAlertDialogBuilder(context)
+					.setTitle(R.string.preferences_touchpad_learn_title)
+					.setItems(arrayOf(getString(R.string.touchpad_learn_again), getString(R.string.touchpad_learn_forget))) { _, which ->
+						if(which == 0)
+							learn()
+						else
+						{
+							Gamepad.learnTouchpadKey(context, null)
+							updateTouchpadLearnSummary()
+						}
+					}
+					.create()
+					.withGamepadNav()
+					.show()
+			true
+		}
+
+		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_touchpad_alt_key))?.let {
+			it.entryValues = Gamepad.TouchpadAlt.values().map { a -> a.value }.toTypedArray()
+			it.entries = arrayOf(
+				getString(R.string.preferences_touchpad_alt_none),
+				getString(R.string.preferences_touchpad_alt_create),
+				getString(R.string.preferences_touchpad_alt_l3r3))
+			it.setOnPreferenceChangeListener { _, _ ->
+				listView?.post { Gamepad.loadSettings(context) }
+				true
+			}
 		}
 
 		// Options that only make sense on a phone or tablet
@@ -207,6 +246,25 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			.create()
 			.withGamepadNav()
 			.show()
+	}
+
+	private var touchpadLearnPreference: Preference? = null
+
+	private fun updateTouchpadLearnSummary()
+	{
+		touchpadLearnPreference?.summary =
+			if(Gamepad.hasLearnedTouchpad)
+				getString(R.string.preferences_touchpad_learn_summary_done,
+					android.view.KeyEvent.keyCodeToString(Gamepad.touchpadLearnedKeyCode), Gamepad.touchpadLearnedScanCode)
+			else
+				getString(R.string.preferences_touchpad_learn_summary)
+	}
+
+	override fun onResume()
+	{
+		super.onResume()
+		context?.let { Gamepad.loadSettings(it) }
+		updateTouchpadLearnSummary()
 	}
 
 	override fun getTitle(resources: Resources): String = resources.getString(R.string.title_settings)

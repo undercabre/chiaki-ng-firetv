@@ -22,6 +22,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.metallic.chiaki.R
+import com.metallic.chiaki.common.BitrateDialog
 import com.metallic.chiaki.common.Gamepad
 import com.metallic.chiaki.common.PinPickerView
 import com.metallic.chiaki.common.Preferences
@@ -95,6 +96,13 @@ class StreamActivity : AppCompatActivity()
 		if(tvMode)
 		{
 			binding.overlay.isGone = true
+			// DualSense touchpad: capture the pointer so its fingers/click reach the stream instead of moving a cursor
+			if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+			{
+				binding.root.isFocusable = true
+				binding.root.isFocusableInTouchMode = true
+				binding.root.setOnCapturedPointerListener { _, event -> viewModel.input.onCapturedPointerEvent(event) }
+			}
 			if(savedInstanceState == null)
 				Toast.makeText(this, R.string.stream_menu_hint, Toast.LENGTH_LONG).show()
 		}
@@ -193,6 +201,7 @@ class StreamActivity : AppCompatActivity()
 			getString(R.string.stream_menu_send_ps),
 			getString(R.string.stream_menu_send_touchpad),
 			getString(R.string.stream_menu_display_mode, getString(modeNames[currentMode]), getString(modeNames[nextMode])),
+			getString(R.string.stream_menu_bitrate, viewModel.session.connectInfo.videoProfile.bitrate / 1000),
 			getString(R.string.stream_menu_disconnect))
 		val menuDialog = MaterialAlertDialogBuilder(this)
 			.setTitle(R.string.stream_menu_title)
@@ -202,7 +211,8 @@ class StreamActivity : AppCompatActivity()
 					1 -> viewModel.input.pulseButton(ControllerState.BUTTON_PS)
 					2 -> viewModel.input.pulseButton(ControllerState.BUTTON_TOUCHPAD)
 					3 -> binding.displayModeToggle.check(modeIds[nextMode])
-					4 -> finish()
+					4 -> binding.root.post { showStreamBitrateDialog() }
+					5 -> finish()
 				}
 			}
 			.create()
@@ -215,6 +225,28 @@ class StreamActivity : AppCompatActivity()
 		dialog = menuDialog
 		dialogContents = StreamMenuDialog
 		menuDialog.show()
+	}
+
+	/** Change the bitrate during the game: saved as the new default, then the session reconnects. */
+	private fun showStreamBitrateDialog()
+	{
+		if(dialogContents != null || isFinishing)
+			return
+		val preferences = viewModel.preferences
+		val current = viewModel.session.connectInfo.videoProfile.bitrate
+		val bitrateDialog = BitrateDialog.show(this, getString(R.string.stream_bitrate_title), current, preferences.bitrateAuto) {
+			preferences.bitrate = it
+			val newBitrate = it ?: preferences.bitrateAuto
+			if(newBitrate != current)
+				viewModel.session.reconnectWithBitrate(newBitrate)
+		}
+		bitrateDialog.setOnDismissListener {
+			if(dialogContents == StreamMenuDialog)
+				dialog = null
+			hideSystemUI()
+		}
+		dialog = bitrateDialog
+		dialogContents = StreamMenuDialog
 	}
 
 	@Deprecated("Deprecated in Java")
@@ -308,7 +340,16 @@ class StreamActivity : AppCompatActivity()
 	{
 		super.onWindowFocusChanged(hasFocus)
 		if(hasFocus)
+		{
 			hideSystemUI()
+			if(tvMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+			{
+				binding.root.requestFocus()
+				binding.root.requestPointerCapture()
+			}
+		}
+		else
+			viewModel.input.releaseTouchpad()
 	}
 
 	private fun hideSystemUI()

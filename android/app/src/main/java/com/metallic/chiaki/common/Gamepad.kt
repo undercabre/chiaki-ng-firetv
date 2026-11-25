@@ -40,10 +40,33 @@ object Gamepad
 		}
 	}
 
+	/** Alternative ways to press the touchpad when Fire OS does not deliver its click. */
+	enum class TouchpadAlt(val value: String)
+	{
+		NONE("none"),
+		CREATE("create"),
+		L3_R3("l3r3");
+
+		companion object
+		{
+			fun fromValue(value: String?) = values().firstOrNull { it.value == value } ?: NONE
+		}
+	}
+
 	@Volatile var mapping = Mapping.AUTO
 		private set
 	@Volatile var swapCrossMoon = false
 		private set
+	@Volatile var touchpadAlt = TouchpadAlt.NONE
+		private set
+	/** Key learned from the touchpad click (Controller test → learn). 0 = none. */
+	@Volatile var touchpadLearnedKeyCode = 0
+		private set
+	@Volatile var touchpadLearnedScanCode = 0
+		private set
+
+	private const val PREF_TOUCHPAD_KEYCODE = "touchpad_learned_keycode"
+	private const val PREF_TOUCHPAD_SCANCODE = "touchpad_learned_scancode"
 
 	private val rawCache = SparseBooleanArray()
 
@@ -53,7 +76,30 @@ object Gamepad
 		val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 		mapping = Mapping.fromValue(prefs.getString(context.getString(R.string.preferences_controller_mapping_key), Mapping.AUTO.value))
 		swapCrossMoon = prefs.getBoolean(context.getString(R.string.preferences_swap_cross_moon_key), false)
+		touchpadAlt = TouchpadAlt.fromValue(prefs.getString(context.getString(R.string.preferences_touchpad_alt_key), TouchpadAlt.NONE.value))
+		touchpadLearnedKeyCode = prefs.getInt(PREF_TOUCHPAD_KEYCODE, 0)
+		touchpadLearnedScanCode = prefs.getInt(PREF_TOUCHPAD_SCANCODE, 0)
 		synchronized(rawCache) { rawCache.clear() }
+	}
+
+	val hasLearnedTouchpad get() = touchpadLearnedKeyCode != 0 || touchpadLearnedScanCode != 0
+
+	/** Remember the key that the touchpad click produces on this Fire TV (null = forget). */
+	fun learnTouchpadKey(context: Context, event: KeyEvent?)
+	{
+		PreferenceManager.getDefaultSharedPreferences(context).edit()
+			.putInt(PREF_TOUCHPAD_KEYCODE, event?.keyCode ?: 0)
+			.putInt(PREF_TOUCHPAD_SCANCODE, event?.scanCode ?: 0)
+			.apply()
+		touchpadLearnedKeyCode = event?.keyCode ?: 0
+		touchpadLearnedScanCode = event?.scanCode ?: 0
+	}
+
+	private fun isLearnedTouchpad(event: KeyEvent): Boolean
+	{
+		if(touchpadLearnedScanCode != 0)
+			return event.scanCode == touchpadLearnedScanCode
+		return touchpadLearnedKeyCode != 0 && event.keyCode == touchpadLearnedKeyCode
 	}
 
 	fun isGamepadSource(source: Int) =
@@ -129,6 +175,8 @@ object Gamepad
 	/** Logical key code (see class doc) for a key event. Non gamepad events are returned unchanged. */
 	fun logicalKeyCode(event: KeyEvent): Int
 	{
+		if(isGamepadSource(event.source) && isLearnedTouchpad(event))
+			return KEYCODE_TOUCHPAD
 		if(!isGamepadSource(event.source) || !isRaw(event.device))
 			return event.keyCode
 		return rawKeyTable[event.keyCode] ?: event.keyCode
