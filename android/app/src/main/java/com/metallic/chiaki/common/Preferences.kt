@@ -70,9 +70,48 @@ class Preferences(context: Context)
 		get() = Gamepad.Mapping.fromValue(sharedPreferences.getString(controllerMappingKey, Gamepad.Mapping.AUTO.value))
 		set(value) { sharedPreferences.edit().putString(controllerMappingKey, value.value).apply() }
 
+	/**
+	 * Optimal setup for the owner's hardware: Fire TV Stick Lite (1080p max, H265 decoder,
+	 * no DualSense driver in Fire OS 7) + PS5 over Wi-Fi of unknown band.
+	 * Bump PROFILE_VERSION to re-apply it once on installed devices after an update.
+	 */
+	object FireTvProfile
+	{
+		const val PROFILE_VERSION = 1
+		val resolution = Resolution.RES_1080P
+		val fps = FPS.FPS_60
+		val codec = Codec.CODEC_H265
+		const val BITRATE_KBPS = 10000 // safe on 2.4 GHz and 5 GHz Wi-Fi, raise it from the in-stream menu if smooth
+		val touchpadAlt = Gamepad.TouchpadAlt.CREATE
+	}
+
+	private val profileVersionKey = "fire_tv_profile_version"
+
+	fun applyFireTvProfile()
+	{
+		resolution = FireTvProfile.resolution
+		fps = FireTvProfile.fps
+		codec = FireTvProfile.codec
+		bitrate = FireTvProfile.BITRATE_KBPS
+		touchpadAlt = FireTvProfile.touchpadAlt
+		onScreenControlsEnabled = false
+		touchpadOnlyEnabled = false
+		motionEnabled = false
+		buttonHapticEnabled = false
+		sharedPreferences.edit().putInt(profileVersionKey, FireTvProfile.PROFILE_VERSION).apply()
+	}
+
+	/** On a TV, apply the profile on first launch and once after each profile change. */
+	fun applyFireTvProfileOnce()
+	{
+		if(tv && sharedPreferences.getInt(profileVersionKey, 0) < FireTvProfile.PROFILE_VERSION)
+			applyFireTvProfile()
+	}
+
 	val touchpadAltKey get() = resources.getString(R.string.preferences_touchpad_alt_key)
 	var touchpadAlt
-		get() = Gamepad.TouchpadAlt.fromValue(sharedPreferences.getString(touchpadAltKey, Gamepad.TouchpadAlt.NONE.value))
+		get() = Gamepad.TouchpadAlt.fromValue(sharedPreferences.getString(touchpadAltKey,
+			(if(tv) FireTvProfile.touchpadAlt else Gamepad.TouchpadAlt.NONE).value))
 		set(value) { sharedPreferences.edit().putString(touchpadAltKey, value.value).apply() }
 
 	val discoveryEnabledKey get() = resources.getString(R.string.preferences_discovery_enabled_key)

@@ -77,6 +77,12 @@
     <PreferenceCategory
         app:key="category_stream"
         app:title="@string/preferences_category_title_stream">
+        <Preference
+            app:key="firetv_profile"
+            app:title="@string/preferences_firetv_profile_title"
+            app:summary="@string/preferences_firetv_profile_summary"
+            app:icon="@drawable/ic_resolution"/>
+
         <ListPreference
             app:key="@string/preferences_resolution_key"
             app:title="@string/preferences_resolution_title"

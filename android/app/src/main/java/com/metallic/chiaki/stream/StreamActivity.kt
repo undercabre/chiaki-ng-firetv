@@ -196,25 +196,21 @@ class StreamActivity : AppCompatActivity()
 		val modeNames = listOf(R.string.stream_display_mode_fit, R.string.stream_display_mode_zoom, R.string.stream_display_mode_stretch)
 		val currentMode = modeIds.indexOf(binding.displayModeToggle.checkedButtonId).coerceAtLeast(0)
 		val nextMode = (currentMode + 1) % modeIds.size
-		val items = arrayOf(
-			getString(R.string.stream_menu_resume),
-			getString(R.string.stream_menu_send_ps),
-			getString(R.string.stream_menu_send_touchpad),
-			getString(R.string.stream_menu_display_mode, getString(modeNames[currentMode]), getString(modeNames[nextMode])),
-			getString(R.string.stream_menu_bitrate, viewModel.session.connectInfo.videoProfile.bitrate / 1000),
-			getString(R.string.stream_menu_disconnect))
+		val actions = mutableListOf<Pair<String, () -> Unit>>(
+			getString(R.string.stream_menu_resume) to {},
+			getString(R.string.stream_menu_send_ps) to { viewModel.input.pulseButton(ControllerState.BUTTON_PS) },
+			getString(R.string.stream_menu_send_touchpad) to { viewModel.input.pulseButton(ControllerState.BUTTON_TOUCHPAD) })
+		// Create is used as touchpad: keep a way to press the real Create button
+		if(Gamepad.touchpadAlt == Gamepad.TouchpadAlt.CREATE)
+			actions.add(getString(R.string.stream_menu_send_create) to { viewModel.input.pulseButton(ControllerState.BUTTON_SHARE) })
+		actions.add(getString(R.string.stream_menu_display_mode, getString(modeNames[currentMode]), getString(modeNames[nextMode])) to
+				{ binding.displayModeToggle.check(modeIds[nextMode]) })
+		actions.add(getString(R.string.stream_menu_bitrate, viewModel.session.connectInfo.videoProfile.bitrate / 1000) to
+				{ binding.root.post { showStreamBitrateDialog() } })
+		actions.add(getString(R.string.stream_menu_disconnect) to { finish() })
 		val menuDialog = MaterialAlertDialogBuilder(this)
 			.setTitle(R.string.stream_menu_title)
-			.setItems(items) { _, which ->
-				when(which)
-				{
-					1 -> viewModel.input.pulseButton(ControllerState.BUTTON_PS)
-					2 -> viewModel.input.pulseButton(ControllerState.BUTTON_TOUCHPAD)
-					3 -> binding.displayModeToggle.check(modeIds[nextMode])
-					4 -> binding.root.post { showStreamBitrateDialog() }
-					5 -> finish()
-				}
-			}
+			.setItems(actions.map { it.first }.toTypedArray()) { _, which -> actions[which].second() }
 			.create()
 			.withGamepadNav()
 		menuDialog.setOnDismissListener {

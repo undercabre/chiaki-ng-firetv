@@ -167,4 +167,9 @@
     <string name="preferences_touchpad_alt_none">Ninguno</string>
     <string name="preferences_touchpad_alt_create">Create hace de panel táctil</string>
     <string name="preferences_touchpad_alt_l3r3">L3 + R3 a la vez = panel táctil</string>
+    <string name="stream_menu_send_create">Pulsar Create</string>
+    <string name="action_apply">Aplicar</string>
+    <string name="preferences_firetv_profile_title">Restaurar valores óptimos (Fire TV Stick Lite + PS5)</string>
+    <string name="preferences_firetv_profile_summary">1080p · 60 fps · H265 · 10 Mbps · Create = panel táctil</string>
+    <string name="preferences_firetv_profile_confirm">¿Poner 1080p, 60 fps, H265, 10 Mbps y Create como panel táctil? Se sustituirán tus valores actuales de estos ajustes.</string>
 </resources>

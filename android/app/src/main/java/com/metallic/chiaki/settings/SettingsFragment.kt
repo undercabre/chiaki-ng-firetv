@@ -158,6 +158,23 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 			true
 		}
 
+		preferenceScreen.findPreference<Preference>("firetv_profile")?.setOnPreferenceClickListener {
+			MaterialAlertDialogBuilder(context)
+				.setTitle(R.string.preferences_firetv_profile_title)
+				.setMessage(R.string.preferences_firetv_profile_confirm)
+				.setPositiveButton(R.string.action_apply) { _, _ ->
+					preferences.applyFireTvProfile()
+					Gamepad.loadSettings(context)
+					// Rebuild the screen so every summary shows the new values
+					activity?.recreate()
+				}
+				.setNegativeButton(android.R.string.cancel) { _, _ -> }
+				.create()
+				.withGamepadNav()
+				.show()
+			true
+		}
+
 		// Touchpad: learn the key its click produces on this Fire TV, or use another button instead
 		touchpadLearnPreference = preferenceScreen.findPreference("touchpad_learn")
 		touchpadLearnPreference?.setOnPreferenceClickListener {

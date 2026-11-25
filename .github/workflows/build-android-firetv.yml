@@ -1,15 +1,8 @@
 name: Build Android (Fire TV)
 
 on:
+  # Builds on release tags (firetv-v*) or manually from the Actions tab
   push:
-    branches: [ main, master, firetv ]
-    paths:
-      - 'android/**'
-      - 'lib/**'
-      - 'cmake/**'
-      - 'third-party/**'
-      - 'CMakeLists.txt'
-      - '.github/workflows/build-android-firetv.yml'
     tags: [ 'firetv-v*' ]
   workflow_dispatch:
 

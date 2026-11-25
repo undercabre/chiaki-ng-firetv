@@ -34,7 +34,10 @@ class StreamInput(val context: Context, val preferences: Preferences)
 			val l3r3 = ControllerState.BUTTON_L3 or ControllerState.BUTTON_R3
 			when
 			{
-				Gamepad.touchpadAlt == Gamepad.TouchpadAlt.CREATE && b and ControllerState.BUTTON_SHARE != 0U ->
+				// only the physical Create button; "Press Create" from the menu still sends Create
+				Gamepad.touchpadAlt == Gamepad.TouchpadAlt.CREATE &&
+						keyControllerState.buttons and ControllerState.BUTTON_SHARE != 0U &&
+						pulseControllerState.buttons and ControllerState.BUTTON_SHARE == 0U ->
 					(b and ControllerState.BUTTON_SHARE.inv()) or ControllerState.BUTTON_TOUCHPAD
 				Gamepad.touchpadAlt == Gamepad.TouchpadAlt.L3_R3 && b and l3r3 == l3r3 ->
 					(b and l3r3.inv()) or ControllerState.BUTTON_TOUCHPAD

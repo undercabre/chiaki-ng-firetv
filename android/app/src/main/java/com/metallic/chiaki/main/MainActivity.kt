@@ -33,6 +33,8 @@ class MainActivity : GamepadNavActivity()
 	override fun onCreate(savedInstanceState: Bundle?)
 	{
 		super.onCreate(savedInstanceState)
+		// Fire TV Stick Lite + PS5 settings, applied on first launch / after updating to a new profile
+		Preferences(this).applyFireTvProfileOnce()
 		binding = ActivityMainBinding.inflate(layoutInflater)
 		setContentView(binding.root)
 
